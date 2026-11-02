@@ -22,7 +22,7 @@ function useTeacherDataValue() {
       db.from("students").select("*").order("name"),
       db.from("checkins").select("*").gte("date", since).order("at", { ascending: false }).limit(5000),
       db.from("sessions").select("*").order("date", { ascending: false }).limit(200),
-      db.from("lessons").select("*").order("date"),
+      db.from("shepherd_lessons").select("*").order("date"),
       db.from("progress").select("*").gte("date", since).limit(5000),
     ]);
     const e = s.error || c.error || se.error || l.error || p.error;
@@ -90,13 +90,13 @@ function useTeacherDataValue() {
       if (r.error) throw new Error(r.error.message); reload();
     },
     async saveLesson(l: Lesson, originalDate: string | null) {
-      const r = await sb().from("lessons").upsert(l);
+      const r = await sb().from("shepherd_lessons").upsert(l);
       if (r.error) throw new Error(r.error.message);
-      if (originalDate && originalDate !== l.date) await sb().from("lessons").delete().eq("date", originalDate);
+      if (originalDate && originalDate !== l.date) await sb().from("shepherd_lessons").delete().eq("date", originalDate);
       reload();
     },
     async deleteLesson(date: string) {
-      const r = await sb().from("lessons").delete().eq("date", date);
+      const r = await sb().from("shepherd_lessons").delete().eq("date", date);
       if (r.error) throw new Error(r.error.message); reload();
     },
   }), [derived, reload, today]);

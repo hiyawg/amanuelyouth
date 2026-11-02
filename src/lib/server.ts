@@ -65,9 +65,9 @@ export async function studentStreak(id: string, today = dayKey()): Promise<{ str
 /** This week's lesson: the latest one on or before today, else the next one coming up. */
 export async function currentLesson(today = dayKey()): Promise<Lesson | null> {
   const db = admin();
-  const past = await db.from("lessons").select("*").lte("date", today).order("date", { ascending: false }).limit(1);
+  const past = await db.from("shepherd_lessons").select("*").lte("date", today).order("date", { ascending: false }).limit(1);
   if (past.data?.length) return past.data[0] as Lesson;
-  const next = await db.from("lessons").select("*").order("date", { ascending: true }).limit(1);
+  const next = await db.from("shepherd_lessons").select("*").order("date", { ascending: true }).limit(1);
   return (next.data?.[0] as Lesson) || null;
 }
 

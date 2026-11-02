@@ -169,7 +169,7 @@ textarea.input { resize: vertical; line-height: 1.45 }
 
 /* lessons: student */
 .lhero { background: color-mix(in srgb, var(--c) 14%, var(--surface)); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 6px }
-.talk { font-size: 1.02rem; line-height: 1.6 }
+.talk { font-size: 1.02rem; line-height: 1.6; white-space: pre-line }
 .acts-list { display: flex; flex-direction: column; gap: 8px }
 .act { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); cursor: pointer; text-align: left }
 .act:hover { border-color: var(--accent) }

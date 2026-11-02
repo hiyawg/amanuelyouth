@@ -34,7 +34,7 @@ create table if not exists checkins (
 );
 create index if not exists checkins_date_idx on checkins(date);
 
-create table if not exists lessons (
+create table if not exists shepherd_lessons (
   date date primary key,
   title text not null,
   passage text not null default '',
@@ -65,13 +65,13 @@ create table if not exists progress (
 alter table students enable row level security;
 alter table sessions enable row level security;
 alter table checkins enable row level security;
-alter table lessons enable row level security;
+alter table shepherd_lessons enable row level security;
 alter table progress enable row level security;
 
 do $$
 declare t text;
 begin
-  foreach t in array array['students','sessions','checkins','lessons','progress'] loop
+  foreach t in array array['students','sessions','checkins','shepherd_lessons','progress'] loop
     execute format('drop policy if exists "teachers manage %1$s" on %1$I', t);
     execute format('create policy "teachers manage %1$s" on %1$I for all to authenticated using (true) with check (true)', t);
   end loop;
@@ -81,7 +81,7 @@ end $$;
 do $$
 declare t text;
 begin
-  foreach t in array array['students','sessions','checkins','lessons','progress'] loop
+  foreach t in array array['students','sessions','checkins','shepherd_lessons','progress'] loop
     if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = t) then
       execute format('alter publication supabase_realtime add table %I', t);
     end if;
