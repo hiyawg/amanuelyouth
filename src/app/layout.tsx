@@ -1,9 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Baloo_2, Figtree } from "next/font/google";
 import "./globals.css";
-
-const baloo = Baloo_2({ subsets: ["latin"], weight: ["600", "700", "800"], variable: "--font-baloo" });
-const figtree = Figtree({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-figtree" });
 
 export const metadata: Metadata = {
   title: "Shepherd Check-In",
@@ -11,9 +7,18 @@ export const metadata: Metadata = {
 };
 export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover" };
 
+// Fonts load from Google Fonts in the browser, so the build never depends on fetching them.
+const FONTS = "https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Figtree:wght@400;500;600;700&display=swap";
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${baloo.variable} ${figtree.variable}`}>
+    <html lang="en">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+        <link rel="stylesheet" href={FONTS} />
+      </head>
       <body>{children}</body>
     </html>
   );

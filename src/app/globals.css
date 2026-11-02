@@ -5,8 +5,8 @@
   --elem: #E0604A; --mid: #2C9466; --high: #5757CF;
   --ok: #2C9466; --warn: #C27A00; --bad: #C23B3B;
   --qr-plate: #FFFFFF;
-  --f-display: var(--font-baloo), "Trebuchet MS", system-ui, sans-serif;
-  --f-body: var(--font-figtree), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-display: "Baloo 2", "Trebuchet MS", system-ui, sans-serif;
+  --f-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
   --r: 14px;
 }
 @media (prefers-color-scheme: dark) {
