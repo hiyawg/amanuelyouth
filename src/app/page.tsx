@@ -13,9 +13,10 @@ export default function Home() {
             <h2>Students</h2>
             <p className="muted">Scan the QR code on the screen by the classroom door with your phone camera.</p>
           </section>
-          <section className="panel stack" style={{ gap: 8 }}>
+          <section className="panel stack" style={{ gap: 10 }}>
             <h2>Parents</h2>
             <p className="muted">Open the badge link your child's teacher sent you. It shows the badge, today's pickup code and this week's lesson.</p>
+            <Link className="btn ghost" href="/schedule">See Sunday's classes and rooms</Link>
           </section>
           <section className="panel stack" style={{ gap: 10 }}>
             <h2>Teachers</h2>

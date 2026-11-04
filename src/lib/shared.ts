@@ -25,6 +25,12 @@ export type Progress = {
   challenge_done: boolean; reflection: string; updated_at: string;
 };
 
+export type ScheduleItem = {
+  id?: string; date: string; section: string; teachers: string[];
+  room: string; starts: string; ends: string; note: string; sort: number;
+};
+export const DEFAULT_SECTIONS = ["Preschool", "Elementary", "Middle & High School", "Discipleship"];
+
 export const GROUPS: Record<Group, { label: string; grades: string; print: string }> = {
   elementary: { label: "Elementary", grades: "K–5", print: "#E0604A" },
   middle: { label: "Middle School", grades: "6–8", print: "#2C9466" },
@@ -50,6 +56,17 @@ export function prettyDate(key: string, long = false): string {
   return new Date(y, m - 1, d).toLocaleDateString(undefined, long
     ? { weekday: "long", month: "long", day: "numeric" }
     : { weekday: "short", month: "short", day: "numeric" });
+}
+/** The next Sunday on or after a date key. */
+export function sundayFrom(key: string): string {
+  const [y, m, d] = key.split("-").map(Number);
+  return addDays(key, (7 - new Date(Date.UTC(y, m - 1, d)).getUTCDay()) % 7);
+}
+/** "14:30" → "2:30 PM" */
+export function clockTime(hm: string): string {
+  const [h, m] = hm.split(":").map(Number);
+  if (Number.isNaN(h)) return "";
+  return new Date(2000, 0, 1, h, m || 0).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 }
 export function timeOf(iso: string): string {
   return new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });

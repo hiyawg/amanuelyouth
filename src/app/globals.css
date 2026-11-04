@@ -225,3 +225,11 @@ footer em { font-family: var(--f-display); font-style: normal; font-weight: 600;
   .wrap { padding: 0 }
 }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important } }
+
+/* Public schedule */
+.sched .room { font-size: 1.05rem }
+.sched .room b { font-family: var(--f-display); font-size: 1.6rem; color: var(--accent) }
+.sched-row { display: grid; grid-template-columns: 1.3fr 1.6fr .7fr .8fr .8fr auto; gap: 8px; align-items: end; padding: 12px 0; border-top: 1px solid var(--line) }
+.sched-row:first-child { border-top: 0 }
+.sched-row .note { grid-column: 1 / -2 }
+@media (max-width: 860px) { .sched-row { grid-template-columns: 1fr 1fr } .sched-row .note { grid-column: 1 / -1 } }

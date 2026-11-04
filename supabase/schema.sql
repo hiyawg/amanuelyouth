@@ -59,6 +59,20 @@ create table if not exists progress (
   primary key (student_id, date)
 );
 
+-- Who teaches each section on a class day. Parents see it on the public /schedule page.
+create table if not exists shepherd_schedule (
+  id uuid primary key default gen_random_uuid(),
+  date date not null,
+  section text not null check (char_length(section) between 1 and 60),
+  teachers text[] not null default '{}',
+  room text not null default '',
+  starts text not null default '',   -- "HH:MM"
+  ends text not null default '',
+  note text not null default '',
+  sort int not null default 0
+);
+create index if not exists shepherd_schedule_date_idx on shepherd_schedule(date);
+
 -- Security: only signed-in teachers can read or change data directly.
 -- Students and parents never touch the database; they go through the
 -- app's server routes, which check the rotating code, badge or student token.
@@ -67,11 +81,12 @@ alter table sessions enable row level security;
 alter table checkins enable row level security;
 alter table shepherd_lessons enable row level security;
 alter table progress enable row level security;
+alter table shepherd_schedule enable row level security;
 
 do $$
 declare t text;
 begin
-  foreach t in array array['students','sessions','checkins','shepherd_lessons','progress'] loop
+  foreach t in array array['students','sessions','checkins','shepherd_lessons','progress','shepherd_schedule'] loop
     execute format('drop policy if exists "teachers manage %1$s" on %1$I', t);
     execute format('create policy "teachers manage %1$s" on %1$I for all to authenticated using (true) with check (true)', t);
   end loop;
@@ -81,7 +96,7 @@ end $$;
 do $$
 declare t text;
 begin
-  foreach t in array array['students','sessions','checkins','shepherd_lessons','progress'] loop
+  foreach t in array array['students','sessions','checkins','shepherd_lessons','progress','shepherd_schedule'] loop
     if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = t) then
       execute format('alter publication supabase_realtime add table %I', t);
     end if;
