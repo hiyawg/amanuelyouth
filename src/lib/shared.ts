@@ -30,6 +30,15 @@ export type ScheduleItem = {
   room: string; starts: string; ends: string; note: string; sort: number;
 };
 export const DEFAULT_SECTIONS = ["Preschool", "Elementary", "Middle & High School", "Discipleship"];
+/** The color class for a schedule section, matched from its name. */
+export function sectionTone(section: string): string {
+  const s = section.toLowerCase();
+  if (/pre-?school|nursery|toddler/.test(s)) return "g-pre";
+  if (/elem|kinder|primary/.test(s)) return "g-elementary";
+  if (/high|youth|teen/.test(s)) return "g-high";
+  if (/middle|junior/.test(s)) return "g-middle";
+  return "g-disc";
+}
 
 export const GROUPS: Record<Group, { label: string; grades: string; print: string }> = {
   elementary: { label: "Elementary", grades: "K–5", print: "#E0604A" },

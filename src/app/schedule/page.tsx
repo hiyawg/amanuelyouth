@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Footer, Logo } from "@/components/ui";
 import { api } from "@/lib/browser";
-import { CHURCH_NAME, clockTime, prettyDate, type ScheduleItem } from "@/lib/shared";
+import { CHURCH_NAME, clockTime, prettyDate, sectionTone, type ScheduleItem } from "@/lib/shared";
 
 type Data = { dates: string[]; date: string | null; items: ScheduleItem[] };
 
@@ -34,11 +34,14 @@ export default function Schedule() {
               </select>
             )}
             {d.items.length ? d.items.map((s, i) => (
-              <section key={i} className="panel stack sched" style={{ gap: 6 }}>
-                <div className="panel-head" style={{ marginBottom: 0 }}><h2>{s.section}</h2>{time(s) && <span className="chip m">{time(s)}</span>}</div>
-                {s.room && <p className="room">Room <b>{s.room}</b></p>}
-                {s.teachers.length > 0 && <p><span className="muted small">{s.teachers.length > 1 ? "Teachers" : "Teacher"}</span><br /><b>{s.teachers.join(", ")}</b></p>}
-                {s.note && <p className="muted small">{s.note}</p>}
+              <section key={i} className={`panel sched ${sectionTone(s.section)}`}>
+                {s.room && <div className="roomtile"><span>Room</span><b>{s.room}</b></div>}
+                <div className="info">
+                  <h2>{s.section}</h2>
+                  {time(s) && <p className="muted small">{time(s)}</p>}
+                  {s.teachers.length > 0 && <p className="who">{s.teachers.join(", ")}</p>}
+                  {s.note && <p className="muted small">{s.note}</p>}
+                </div>
               </section>
             )) : <p className="muted">Nothing is scheduled for this day.</p>}
           </>

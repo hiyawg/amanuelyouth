@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover" };
 
 // Fonts load from Google Fonts in the browser, so the build never depends on fetching them.
-const FONTS = "https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Figtree:wght@400;500;600;700&display=swap";
+const FONTS = "https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
