@@ -2,19 +2,26 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTeacher } from "@/components/teacher-data";
 import { Avatar, Celebrate, Qr, type Celebration } from "@/components/ui";
-import { confetti } from "@/lib/browser";
+import { clockOffset, confetti } from "@/lib/browser";
 import { METHODS, WINDOW_MS, codeFor, curWin, prettyDate, timeOf } from "@/lib/shared";
 
 export default function Door() {
   const t = useTeacher();
   const [theme, setTheme] = useState("");
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(Date.now()), offset = useRef(0);
   const [scan, setScan] = useState(""), [scanMsg, setScanMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [cel, setCel] = useState<Celebration | null>(null);
   const scanRef = useRef<HTMLInputElement>(null);
   const close = useCallback(() => setCel(null), []);
 
-  useEffect(() => { const iv = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(iv); }, []);
+  useEffect(() => { const iv = setInterval(() => setNow(Date.now() + offset.current), 1000); return () => clearInterval(iv); }, []);
+  // Codes are checked against the server's clock, so follow it rather than this device's.
+  useEffect(() => {
+    const sync = () => clockOffset().then(o => { offset.current = o; setNow(Date.now() + o); }).catch(() => {});
+    sync();
+    const iv = setInterval(sync, 5 * 60_000);
+    return () => clearInterval(iv);
+  }, []);
   useEffect(() => { scanRef.current?.focus(); }, [t.session]);
 
   if (!t.loaded) return <p className="muted">Loading…</p>;

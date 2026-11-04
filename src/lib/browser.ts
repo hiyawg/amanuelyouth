@@ -48,6 +48,12 @@ export function badgePng(s: Pick<Student, "name" | "grp" | "badge"> & { note?: s
 export function store(k: string, v?: string) { try { if (v === undefined) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch {} }
 export function recall(k: string): string | null { try { return localStorage.getItem(k); } catch { return null; } }
 
+/** How far this device's clock is from the server's, in ms. Add it to Date.now(). */
+export async function clockOffset(): Promise<number> {
+  const t0 = Date.now(), { now } = await api<{ now: number }>("/api/time"), t1 = Date.now();
+  return now - (t0 + t1) / 2;
+}
+
 export async function api<T = any>(url: string, body?: unknown): Promise<T> {
   const r = await fetch(url, body === undefined ? undefined : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   const d = await r.json().catch(() => ({}));
