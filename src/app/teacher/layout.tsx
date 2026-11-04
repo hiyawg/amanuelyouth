@@ -7,11 +7,11 @@ import { TeacherData, useTeacher } from "@/components/teacher-data";
 import { Footer, Logo } from "@/components/ui";
 import { CHURCH_NAME } from "@/lib/shared";
 
-const TABS = [["/teacher", "Today"], ["/teacher/door", "Door display"], ["/teacher/kiosk", "Kiosk"], ["/teacher/lessons", "Lessons"], ["/teacher/students", "Students & badges"]];
+const TABS = [["/teacher", "Today"], ["/teacher/door", "Door display"], ["/teacher/kiosk", "Kiosk"], ["/teacher/history", "History"], ["/teacher/lessons", "Lessons"], ["/teacher/students", "Students & badges"]];
 
 function Status() {
   const { error, loaded } = useTeacher();
-  return <span className="status noprint" data-s={error ? "error" : "live"}><i />{error ? "Can't reach the database" : loaded ? "Live" : "Loading…"}</span>;
+  return <span className="status noprint" data-s={error ? "error" : "live"} title={error || undefined}><i />{error ? `Can't reach the database: ${error}` : loaded ? "Live" : "Loading…"}</span>;
 }
 
 export default function TeacherLayout({ children }: { children: React.ReactNode }) {

@@ -56,7 +56,7 @@ function useTeacherDataValue() {
     const currentLesson: Lesson | undefined = past.length ? past[past.length - 1] : asc[0];
     const session = d.sessions.find(s => s.date === today);
     const prog = (sid: string, date: string) => d.progress.find(p => p.student_id === sid && p.date === date);
-    return { byId, todays, present, streak, followUps, currentLesson, session, prog };
+    return { byId, todays, present, classDays, streak, followUps, currentLesson, session, prog };
   }, [d, today]);
 
   const actions = useMemo(() => ({
