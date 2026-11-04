@@ -12,11 +12,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ badge: 
     db.from("checkins").select("at, pickup, out_at").eq("student_id", st.id).eq("date", dayKey()).maybeSingle(),
     currentLesson(), journey(st.id),
   ]);
-  const prog = L ? (await db.from("progress").select("verse_done, quiz_score, quiz_total, challenge_done").eq("student_id", st.id).eq("date", L.date).maybeSingle()).data : null;
+  const prog = L ? (await db.from("progress").select("verse_done, reflection").eq("student_id", st.id).eq("date", L.date).maybeSingle()).data : null;
   return json({
     student: { name: st.name, grp: st.grp, badge: st.badge },
     today: today.data, streak: j.streak, token: studentToken(st.id),
-    lesson: L ? { title: L.title, big_idea: L.big_idea, verse_ref: L.verse_ref, verse_text: L.verse_text, family: L.family } : null,
-    progress: prog,
+    lesson: L ? { session_no: L.session_no, title: L.title, big_idea: L.big_idea, verse_ref: L.verse_ref, verse_text: L.verse_text, discussion: L.discussion?.[0] || "" } : null,
+    progress: prog ? { verse_done: prog.verse_done, notes: !!prog.reflection?.trim() } : null,
   });
 }

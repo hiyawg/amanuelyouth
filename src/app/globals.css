@@ -184,6 +184,20 @@ textarea.input { resize: vertical; line-height: 1.45 }
 .optin input[type=radio] { accent-color: var(--ok); width: 18px; height: 18px; flex: none }
 .editor-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid var(--line) }
 
+/* lessons: a course session, shared by the student and teacher views */
+.sess-list { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 8px }
+.sess-list li::marker { color: var(--accent-text); font-weight: 800 }
+.scripture { display: flex; flex-direction: column; gap: 2px }
+.scripture b { font-family: var(--f-display); font-weight: 800; color: var(--accent-text) }
+.scripture p { line-height: 1.6 }
+.qa { display: flex; flex-direction: column; gap: 3px }
+.qa b { font-weight: 700 }
+.qa p { color: var(--muted) }
+.teacher-only { background: color-mix(in srgb, var(--sun) 10%, var(--surface)) }
+.hour { width: 100%; border-collapse: collapse; font-size: .9rem }
+.hour td { padding: 6px 8px; border-top: 1px solid var(--line) }
+.hour td:first-child { font-weight: 700; width: 110px } .hour td:last-child { text-align: right; font-variant-numeric: tabular-nums; width: 60px }
+
 /* lessons: student */
 .lhero { background: color-mix(in srgb, var(--c) 14%, var(--surface)); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 6px }
 .talk { font-size: 1.02rem; line-height: 1.6; white-space: pre-line }

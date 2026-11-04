@@ -20,7 +20,7 @@ export default function Today() {
   function chips(sid: string) {
     if (!L) return null;
     const p = t.prog(sid, L.date); if (!p) return null;
-    return <>{p.verse_done && <span className="chip m">📖 Verse</span>}{p.quiz_total ? <span className="chip m">✔ Quiz {p.quiz_score}/{p.quiz_total}</span> : null}{p.challenge_done && <span className="chip m">⭐ Challenge</span>}</>;
+    return <>{p.verse_done && <span className="chip m">📖 Verse</span>}{p.reflection?.trim() && <span className="chip m">✏️ Notes</span>}</>;
   }
   function exportCsv() {
     const rows = [["Name", "Group", "Checked in", "Method", "Picked up"], ...[...here].reverse().map(({ c, s }) => [s!.name, GROUPS[s!.grp].label, timeOf(c.at), METHODS[c.method], c.out_at ? timeOf(c.out_at) : ""])];
@@ -38,7 +38,7 @@ export default function Today() {
           <p className="eyebrow">{prettyDate(t.today, true)}</p>
           <h1>Today's class</h1>
           <p className="theme">
-            {L ? <>This week: <strong>{L.title}</strong> · {L.verse_ref}. </> : <>No lesson yet. <Link href="/teacher/lessons">Add this week's lesson</Link>. </>}
+            {L ? <>This week: <strong>{L.session_no ? `Session ${L.session_no}: ` : ""}{L.title}</strong> · {L.verse_ref}. </> : <>No lesson yet. <Link href="/teacher/lessons">Add this week's lesson</Link>. </>}
             {t.session ? (t.session.theme ? `Door theme: ${t.session.theme}` : "Check-in is open.") : <>Check-in hasn't started. <Link href="/teacher/door">Open the door display</Link>.</>}
           </p>
         </div>

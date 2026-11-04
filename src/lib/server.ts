@@ -1,7 +1,7 @@
 // Server-only helpers: the Supabase service client, signed tokens, and shared queries.
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { badgesFor, dayKey, pickupCode, streak, type Group, type Lesson, type Method, type Student } from "./shared";
+import { badgesFor, dayKey, pickupCode, streak, type Lesson, type Method, type Student } from "./shared";
 
 let client: SupabaseClient | null = null;
 export function admin(): SupabaseClient {
@@ -90,17 +90,17 @@ export async function journey(id: string) {
     badges: badgesFor({
       classes: s.classes, streak: s.streak,
       verses: rows.filter(p => p.verse_done).length,
-      challenges: rows.filter(p => p.challenge_done).length,
-      perfect: rows.some(p => p.quiz_total && p.quiz_score === p.quiz_total),
+      notes: rows.filter(p => p.reflection?.trim()).length,
     }),
   };
 }
 
-export function lessonFor(l: Lesson, grp: Group) {
+/** What students see: the session without the teacher's outline, model answers or notes. */
+export function lessonFor(l: Lesson) {
   return {
-    date: l.date, title: l.title, passage: l.passage, big_idea: l.big_idea,
-    verse_ref: l.verse_ref, verse_text: l.verse_text,
-    talk: l.talk?.[grp] || "", challenge: l.challenge?.[grp] || "", family: l.family, quiz: l.quiz || [],
+    date: l.date, session_no: l.session_no, unit: l.unit, title: l.title, subtitle: l.subtitle, big_idea: l.big_idea,
+    objectives: l.objectives || [], scriptures: l.scriptures || [], review: (l.review || []).map(r => r.q),
+    discussion: l.discussion || [], verse_ref: l.verse_ref, verse_text: l.verse_text,
   };
 }
 export type StudentLesson = ReturnType<typeof lessonFor>;

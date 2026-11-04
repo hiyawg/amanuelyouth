@@ -11,7 +11,7 @@ export async function GET(req: Request) {
   if (!s) return fail("We couldn't find you. Check in again.", 401);
   const L = await currentLesson();
   const prog = L ? (await admin().from("progress").select("*").eq("student_id", s.id).eq("date", L.date).maybeSingle()).data : null;
-  return json({ student: publicStudent(s), lesson: L ? lessonFor(L, s.grp) : null, progress: prog, ...(await journey(s.id)) });
+  return json({ student: publicStudent(s), lesson: L ? lessonFor(L) : null, progress: prog, ...(await journey(s.id)) });
 }
 
 export async function POST(req: Request) {
@@ -21,14 +21,8 @@ export async function POST(req: Request) {
   const L = await currentLesson();
   if (!L) return fail("There's no lesson this week.", 404);
   const db = admin();
-  const cur = (await db.from("progress").select("*").eq("student_id", s.id).eq("date", L.date).maybeSingle()).data;
   const row: Record<string, unknown> = { student_id: s.id, date: L.date, updated_at: new Date().toISOString() };
   if (body.verseDone) row.verse_done = true;
-  if (Number.isInteger(body.quizScore) && L.quiz?.length) {
-    row.quiz_score = Math.min(L.quiz.length, Math.max(body.quizScore, cur?.quiz_score ?? 0));
-    row.quiz_total = L.quiz.length;
-  }
-  if (body.challengeDone) row.challenge_done = true;
   if (typeof body.reflection === "string") row.reflection = body.reflection.slice(0, 1000);
   const up = await db.from("progress").upsert(row).select().single();
   if (up.error) return fail("That didn't save. Try again.", 500);

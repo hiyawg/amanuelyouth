@@ -1,18 +1,18 @@
 "use client";
-// A student's lesson for the week: talk for their age group, memory verse game, quiz, challenge and badges.
+// A student's session for the week: the aim, Scriptures and questions, the memory verse game, their notes and badges.
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Footer, Logo } from "@/components/ui";
 import { api, confetti, recall } from "@/lib/browser";
-import { firstName, shuffle, verseChunks, type Group, type Progress } from "@/lib/shared";
+import { firstName, sessionLabel, shuffle, verseChunks, type Group, type Progress } from "@/lib/shared";
 import type { StudentLesson } from "@/lib/server";
 
 type Me = {
   student: { id: string; name: string; grp: Group }; lesson: StudentLesson | null; progress: Progress | null;
   streak: number; badges: { name: string; desc: string; on: boolean }[];
 };
-type Mode = "menu" | "verse" | "quiz" | "challenge";
+type Mode = "menu" | "verse" | "notes";
 
 export default function LessonPage() {
   return <Suspense fallback={null}><Lesson /></Suspense>;
@@ -52,13 +52,25 @@ function Lesson() {
         {me && L && g && mode === "menu" && (
           <>
             {back}
-            <div className={`lhero g-${g}`}><span className="eyebrow">This week · {L.passage}</span><h1>{L.title}</h1>{L.big_idea && <p>{L.big_idea}</p>}</div>
-            {L.talk && <p className="talk">{L.talk}</p>}
+            <div className="lhero g-disc">
+              <span className="eyebrow">{[L.unit, sessionLabel(L)].filter(Boolean).join(" · ")}</span>
+              <h1>{L.title}</h1>
+              {L.subtitle && <p className="muted">{L.subtitle}</p>}
+              {L.big_idea && <p><strong>Aim.</strong> {L.big_idea}</p>}
+            </div>
             <div className="acts-list">
               <button className="act" onClick={() => setMode("verse")}><span className="ico">📖</span><span className="txt"><b>Memory verse</b><small>{L.verse_ref}</small></span><span className={`st ${p?.verse_done ? "ok" : ""}`}>{p?.verse_done ? "Learned ✓" : "Play"}</span></button>
-              {L.quiz.length > 0 && <button className="act" onClick={() => setMode("quiz")}><span className="ico">❓</span><span className="txt"><b>Quiz</b><small>{L.quiz.length} questions</small></span><span className={`st ${p?.quiz_total ? "ok" : ""}`}>{p?.quiz_total ? `Best ${p.quiz_score}/${p.quiz_total}` : "Start"}</span></button>}
-              {L.challenge && <button className="act" onClick={() => setMode("challenge")}><span className="ico">⭐</span><span className="txt"><b>This week's challenge</b><small>Live it out</small></span><span className={`st ${p?.challenge_done ? "ok" : ""}`}>{p?.challenge_done ? "Done ✓" : "Open"}</span></button>}
+              <button className="act" onClick={() => setMode("notes")}><span className="ico">✏️</span><span className="txt"><b>My notes</b><small>What stood out to you</small></span><span className={`st ${p?.reflection ? "ok" : ""}`}>{p?.reflection ? "Saved ✓" : "Write"}</span></button>
             </div>
+            {L.objectives.length > 0 && <section className="panel stack" style={{ gap: 8 }}><h2>You should leave holding</h2><ol className="sess-list">{L.objectives.map((x, i) => <li key={i}>{x}</li>)}</ol></section>}
+            {L.scriptures.length > 0 && (
+              <section className="panel stack" style={{ gap: 12 }}>
+                <h2>Key Scriptures</h2>
+                {L.scriptures.map((x, i) => <div key={i} className="scripture"><b>{x.ref}</b>{x.text && <p>{x.text}</p>}</div>)}
+              </section>
+            )}
+            {L.review.length > 0 && <section className="panel stack" style={{ gap: 8 }}><h2>Review questions</h2><p className="muted small">Work through these in your group.</p><ol className="sess-list">{L.review.map((x, i) => <li key={i}>{x}</li>)}</ol></section>}
+            {L.discussion.length > 0 && <section className="panel stack" style={{ gap: 8 }}><h2>For discussion</h2><ol className="sess-list">{L.discussion.map((x, i) => <li key={i}>{x}</li>)}</ol></section>}
             <section>
               <h2 style={{ fontSize: "1.1rem", marginBottom: 8 }}>{firstName(me.student.name)}'s badges</h2>
               <div className="bdgs">{me.badges.map(b => <div key={b.name} className={`bdg ${b.on ? "on" : ""}`}><span>{b.on ? "🏅" : "🔒"}</span><b>{b.name}</b><small>{b.desc}</small></div>)}</div>
@@ -66,8 +78,7 @@ function Lesson() {
           </>
         )}
         {me && L && g && mode === "verse" && <VerseGame text={L.verse_text} reference={L.verse_ref} grp={g} name={me.student.name} toMenu={toMenu} onDone={() => save({ verseDone: true })} />}
-        {me && L && mode === "quiz" && <Quiz quiz={L.quiz} toMenu={toMenu} onDone={score => save({ quizScore: score })} />}
-        {me && L && g && mode === "challenge" && <Challenge text={L.challenge} grp={g} progress={p ?? null} toMenu={toMenu} onDone={reflection => save({ challengeDone: true, ...(g === "high" ? { reflection } : {}) })} />}
+        {me && L && mode === "notes" && <Notes progress={p ?? null} toMenu={toMenu} onSave={reflection => save({ reflection })} />}
         {err && me && <p className="err">{err}</p>}
       </div></div>
       <Footer />
@@ -122,52 +133,15 @@ function VerseGame({ text, reference, grp, name, toMenu, onDone }: { text: strin
   );
 }
 
-function Quiz({ quiz, toMenu, onDone }: { quiz: StudentLesson["quiz"]; toMenu: React.ReactNode; onDone: (score: number) => void }) {
-  const [i, setI] = useState(0), [score, setScore] = useState(0), [picked, setPicked] = useState<number | null>(null);
-  if (i >= quiz.length) {
-    const perfect = score === quiz.length;
-    return (
-      <div className="done">
-        <div className="tick" style={{ background: perfect ? "var(--ok)" : "var(--sun)" }}>{score}/{quiz.length}</div>
-        <h1>{perfect ? "Perfect score!" : score >= quiz.length / 2 ? "Great job!" : "Nice try!"}</h1>
-        <button className="btn" onClick={() => { setI(0); setScore(0); setPicked(null); }}>Try again</button>
-        {toMenu}
-      </div>
-    );
-  }
-  const x = quiz[i];
-  function next() {
-    const n = i + 1; setI(n); setPicked(null);
-    if (n >= quiz.length) { if (score === quiz.length) confetti(); onDone(score); }
-  }
+function Notes({ progress, toMenu, onSave }: { progress: Progress | null; toMenu: React.ReactNode; onSave: (reflection: string) => Promise<void> }) {
+  const [text, setText] = useState(progress?.reflection || ""), [saved, setSaved] = useState(false);
   return (
     <>
       {toMenu}
-      <div><p className="eyebrow">Question {i + 1} of {quiz.length}</p><h1 style={{ fontSize: "1.5rem" }}>{x.q}</h1></div>
-      <div className="opts-list">
-        {x.options.map((o, j) => {
-          const cls = picked === null ? "" : j === x.answer ? "right" : j === picked ? "wrong" : "dim";
-          return <button key={j} className={`optb ${cls}`} disabled={picked !== null} onClick={() => { setPicked(j); if (j === x.answer) setScore(s => s + 1); }}><span>{"ABCD"[j]}</span>{o}</button>;
-        })}
-      </div>
-      {picked !== null && <>
-        <p style={{ fontWeight: 700, color: `var(--${picked === x.answer ? "ok" : "bad"})` }}>{picked === x.answer ? "That's right!" : "Not quite. The right answer is highlighted."}</p>
-        <button className="btn big" onClick={next}>{i + 1 < quiz.length ? "Next question" : "See my score"}</button>
-      </>}
-    </>
-  );
-}
-
-function Challenge({ text, grp, progress, toMenu, onDone }: { text: string; grp: Group; progress: Progress | null; toMenu: React.ReactNode; onDone: (reflection: string) => void }) {
-  const [refl, setRefl] = useState(progress?.reflection || "");
-  const done = progress?.challenge_done;
-  return (
-    <>
-      {toMenu}
-      <div><p className="eyebrow">This week's challenge</p><h1 style={{ fontSize: "1.6rem" }}>{text}</h1></div>
-      {grp === "high" && <div className="field"><label htmlFor="refl">What did you notice? Only your teachers see this.</label><textarea className="input" id="refl" rows={4} value={refl} onChange={e => setRefl(e.target.value)} /></div>}
-      {done && <p className="out" style={{ fontSize: "1rem" }}>You did it! ⭐</p>}
-      <button className="btn big" onClick={() => { if (!done) confetti(); onDone(refl.trim()); }}>{done ? (grp === "high" ? "Update my note" : "Done ✓") : "I did it!"}</button>
+      <div><p className="eyebrow">My notes</p><h1 style={{ fontSize: "1.6rem" }}>What stood out to you this session?</h1></div>
+      <div className="field"><label htmlFor="refl">A verse, a question, something to pray about. Only your teachers see this.</label><textarea className="input" id="refl" rows={6} value={text} onChange={e => { setText(e.target.value); setSaved(false); }} /></div>
+      {saved && <p className="out" style={{ fontSize: "1rem" }}>Saved ✓</p>}
+      <button className="btn big" onClick={async () => { await onSave(text.trim()); setSaved(true); }}>Save my notes</button>
     </>
   );
 }

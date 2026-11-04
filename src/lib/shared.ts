@@ -12,13 +12,23 @@ export type Checkin = {
   pickup: string | null; out_at: string | null;
 };
 export type Session = { date: string; secret: string; theme: string; started_at: string };
-export type QuizQuestion = { q: string; options: string[]; answer: number };
+/** One session of the discipleship course, laid out like the teacher manual. big_idea is the session's aim. */
 export type Lesson = {
-  date: string; title: string; passage: string; big_idea: string;
-  verse_ref: string; verse_text: string;
-  talk: Partial<Record<Group, string>>; challenge: Partial<Record<Group, string>>;
-  family: string; quiz: QuizQuestion[];
+  date: string; session_no: number | null; unit: string; title: string; subtitle: string; big_idea: string;
+  objectives: string[]; scriptures: { ref: string; text: string }[]; passage: string;
+  outline: { heading: string; body: string }[]; review: { q: string; a: string }[];
+  discussion: string[]; stuck: string[]; verse_ref: string; verse_text: string;
 };
+/** Every session runs the same hour: Reading, Teaching, Responding. */
+export const THE_HOUR: [string, string, number][] = [
+  ["Reading", "Gather; open question before any teaching", 4],
+  ["", "Scriptures aloud, readers assigned in advance", 11],
+  ["Teaching", "The five moves of the outline, about four minutes each", 20],
+  ["Responding", "Review questions, in small groups", 12],
+  ["", "Open discussion questions, back together", 8],
+  ["", "Memory verse and prayer", 5],
+];
+export const sessionLabel = (l: Pick<Lesson, "session_no">) => l.session_no ? `Session ${l.session_no}` : "Session";
 export type Progress = {
   student_id: string; date: string; verse_done: boolean;
   quiz_score: number | null; quiz_total: number | null;
@@ -118,13 +128,13 @@ export function streak(classDaysDesc: string[], attended: Set<string>, today: st
 }
 
 /* Discipleship */
-export function badgesFor(p: { classes: number; streak: number; verses: number; challenges: number; perfect: boolean }) {
+export function badgesFor(p: { classes: number; streak: number; verses: number; notes: number }) {
   return [
-    { name: "First Steps", desc: "Came to class", on: p.classes >= 1 },
-    { name: "Faithful Four", desc: "4 classes in a row", on: p.streak >= 4 },
+    { name: "First Steps", desc: "Came to a session", on: p.classes >= 1 },
+    { name: "Faithful Four", desc: "4 sessions in a row", on: p.streak >= 4 },
     { name: "Verse Keeper", desc: "Learned 3 memory verses", on: p.verses >= 3 },
-    { name: "Doer of the Word", desc: "Did 3 challenges (James 1:22)", on: p.challenges >= 3 },
-    { name: "Quiz Champ", desc: "Got every quiz answer right", on: p.perfect },
+    { name: "Reflective Heart", desc: "Wrote notes on 3 sessions", on: p.notes >= 3 },
+    { name: "Unit Finisher", desc: "Came to 5 sessions", on: p.classes >= 5 },
   ];
 }
 export function verseChunks(text: string, grp: Group): string[] {
@@ -144,26 +154,3 @@ export const SAMPLE_STUDENTS: [string, Group, string][] = [
   ["Mateo L.", "middle", ""], ["Grace T.", "middle", "Asthma inhaler in bag"], ["Jonah P.", "middle", ""],
   ["Abigail S.", "high", ""], ["Daniel O.", "high", ""], ["Hannah W.", "high", ""],
 ];
-
-export const SAMPLE_LESSON: Omit<Lesson, "date"> = {
-  title: "The Good Shepherd", passage: "John 10:1–18",
-  big_idea: "Jesus knows me by name, and he gave his life for me.",
-  verse_ref: "John 10:11", verse_text: "I am the good shepherd. The good shepherd lays down his life for the sheep.",
-  talk: {
-    elementary: "Shepherds in Bible times stayed with their sheep day and night. They gave each sheep a name, and the sheep learned their shepherd's voice. When the shepherd called, they came running! Jesus says he is our Good Shepherd. He knows your name. He knows when you are happy or sad, and he will never leave you.",
-    middle: "In Jesus' day a hired hand watched sheep for pay, and when a wolf showed up he ran. The shepherd stayed, because the sheep were his. Jesus says he is that kind of shepherd. Lots of voices compete for your attention: friends, phones, your own worries. Jesus says his sheep learn to know his voice. How can you tell which voice to follow?",
-    high: "Jesus' words in John 10 echo Ezekiel 34, where God promises to shepherd his people himself after Israel's leaders failed them. When Jesus says \"I am the good shepherd,\" he is taking that role. The Greek word for good, kalos, also means noble or beautiful. His goodness shows in laying down his life by his own choice (10:18). Where do you look for security and identity? What would it mean to trust a shepherd who already gave everything for you?",
-  },
-  challenge: {
-    elementary: "Tell someone at home: Jesus knows my name!",
-    middle: "Learn the name of someone new at school or church, and pray for them by name.",
-    high: "Spend 10 quiet minutes this week listening for God. Write down what you noticed.",
-  },
-  family: "Whose voice do you trust the most, and why?",
-  quiz: [
-    { q: "What does Jesus call himself in John 10?", options: ["The Good Shepherd", "The Gatekeeper", "The Great Fisherman", "The Wise Builder"], answer: 0 },
-    { q: "How do the sheep know their shepherd?", options: ["By his coat", "By his voice", "By the color of his staff", "By a bell"], answer: 1 },
-    { q: "What does the good shepherd do for the sheep?", options: ["Sells them at the market", "Runs from the wolf", "Lays down his life for them", "Counts them once a year"], answer: 2 },
-    { q: "Who runs away when the wolf comes?", options: ["The shepherd", "The sheep", "The gatekeeper", "The hired hand"], answer: 3 },
-  ],
-};

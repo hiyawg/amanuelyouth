@@ -12,8 +12,8 @@ type Data = {
   student: { name: string; grp: Group; badge: string };
   today: { at: string; pickup: string | null; out_at: string | null } | null;
   streak: number; token: string;
-  lesson: { title: string; big_idea: string; verse_ref: string; verse_text: string; family: string } | null;
-  progress: { verse_done: boolean; quiz_score: number | null; quiz_total: number | null; challenge_done: boolean } | null;
+  lesson: { session_no: number | null; title: string; big_idea: string; verse_ref: string; verse_text: string; discussion: string } | null;
+  progress: { verse_done: boolean; notes: boolean } | null;
 };
 
 export default function ParentBadge() {
@@ -57,14 +57,13 @@ export default function ParentBadge() {
             {d.lesson && (
               <section className="panel stack" style={{ gap: 10 }}>
                 <span className="eyebrow">This week {first} is learning</span>
-                <h2>{d.lesson.title}</h2>
+                <h2>{d.lesson.session_no ? `Session ${d.lesson.session_no}: ` : ""}{d.lesson.title}</h2>
                 {d.lesson.big_idea && <p>{d.lesson.big_idea}</p>}
                 <blockquote className="verse" style={{ fontSize: "1rem" }}>{d.lesson.verse_text}<br /><strong>{d.lesson.verse_ref}</strong></blockquote>
-                {d.lesson.family && <p><strong>Talk about it at home:</strong> {d.lesson.family}</p>}
+                {d.lesson.discussion && <p><strong>Talk about it at home:</strong> {d.lesson.discussion}</p>}
                 {d.progress && <div className="chips">
                   {d.progress.verse_done && <span className="chip m">📖 Verse learned</span>}
-                  {d.progress.quiz_total ? <span className="chip m">✔ Quiz {d.progress.quiz_score}/{d.progress.quiz_total}</span> : null}
-                  {d.progress.challenge_done && <span className="chip m">⭐ Challenge done</span>}
+                  {d.progress.notes && <span className="chip m">✏️ Wrote notes</span>}
                 </div>}
                 <Link className="btn" href={`/lesson?t=${encodeURIComponent(d.token)}&b=${encodeURIComponent(s.badge)}`}>Do the lesson together</Link>
               </section>

@@ -47,6 +47,18 @@ create table if not exists shepherd_lessons (
   quiz jsonb not null default '[]'::jsonb        -- [{ q, options: [4], answer }]
 );
 
+-- The discipleship course layout. talk, challenge, family and quiz above are no longer used.
+alter table shepherd_lessons
+  add column if not exists session_no int,
+  add column if not exists unit text not null default '',
+  add column if not exists subtitle text not null default '',
+  add column if not exists objectives jsonb not null default '[]'::jsonb,   -- ["That …"]
+  add column if not exists scriptures jsonb not null default '[]'::jsonb,   -- [{ ref, text }]
+  add column if not exists outline jsonb not null default '[]'::jsonb,      -- [{ heading, body }], teachers only
+  add column if not exists review jsonb not null default '[]'::jsonb,       -- [{ q, a }], answers teachers only
+  add column if not exists discussion jsonb not null default '[]'::jsonb,   -- ["…"]
+  add column if not exists stuck jsonb not null default '[]'::jsonb;        -- ["…"], teachers only
+
 create table if not exists progress (
   student_id uuid not null references students(id) on delete cascade,
   date date not null,
