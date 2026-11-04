@@ -29,11 +29,19 @@ export const THE_HOUR: [string, string, number][] = [
   ["", "Memory verse and prayer", 5],
 ];
 export const sessionLabel = (l: Pick<Lesson, "session_no">) => l.session_no ? `Session ${l.session_no}` : "Session";
+export type Answer = { q: string; a: string };
 export type Progress = {
-  student_id: string; date: string; verse_done: boolean;
-  quiz_score: number | null; quiz_total: number | null;
-  challenge_done: boolean; reflection: string; updated_at: string;
+  student_id: string; date: string; verse_done: boolean; reflection: string; updated_at: string;
+  /** Workbook answers, with each question's text kept alongside so later edits to the lesson don't shift them. */
+  answers: Answer[]; submitted_at: string | null; reviewed_at: string | null; teacher_comment: string;
 };
+/** Where a student's workbook answers stand for one session. */
+export function answerStatus(p: Progress | undefined | null): "none" | "started" | "submitted" | "reviewed" {
+  if (!p) return "none";
+  if (p.reviewed_at) return "reviewed";
+  if (p.submitted_at) return "submitted";
+  return p.answers?.some(x => x.a.trim()) ? "started" : "none";
+}
 
 export type ScheduleItem = {
   id?: string; date: string; section: string; teachers: string[];

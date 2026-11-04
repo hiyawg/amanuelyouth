@@ -5,14 +5,14 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Footer, Logo } from "@/components/ui";
 import { api, confetti, recall } from "@/lib/browser";
-import { firstName, sessionLabel, shuffle, verseChunks, type Group, type Progress } from "@/lib/shared";
+import { answerStatus, firstName, sessionLabel, shuffle, verseChunks, type Group, type Progress } from "@/lib/shared";
 import type { StudentLesson } from "@/lib/server";
 
 type Me = {
   student: { id: string; name: string; grp: Group }; lesson: StudentLesson | null; progress: Progress | null;
   streak: number; badges: { name: string; desc: string; on: boolean }[];
 };
-type Mode = "menu" | "verse" | "notes";
+type Mode = "menu" | "verse" | "notes" | "answers";
 
 export default function LessonPage() {
   return <Suspense fallback={null}><Lesson /></Suspense>;
@@ -33,9 +33,9 @@ function Lesson() {
     api<Me>(`/api/me?token=${encodeURIComponent(tk)}`).then(setMe).catch(e => setErr(e.message));
   }, [sp]);
 
-  async function save(fields: object) {
-    try { const r = await api<Pick<Me, "progress" | "streak" | "badges">>("/api/me", { token, ...fields }); setMe(m => m && { ...m, ...r }); }
-    catch (e: any) { setErr(e.message); }
+  async function save(fields: object): Promise<boolean> {
+    try { const r = await api<Pick<Me, "progress" | "streak" | "badges">>("/api/me", { token, ...fields }); setMe(m => m && { ...m, ...r }); setErr(""); return true; }
+    catch (e: any) { setErr(e.message); return false; }
   }
 
   const L = me?.lesson, g = me?.student.grp, p = me?.progress;
@@ -59,6 +59,7 @@ function Lesson() {
               {L.big_idea && <p><strong>Aim.</strong> {L.big_idea}</p>}
             </div>
             <div className="acts-list">
+              {L.review.length > 0 && <button className="act" onClick={() => setMode("answers")}><span className="ico">📝</span><span className="txt"><b>Workbook questions</b><small>{L.review.length} questions · answer and submit</small></span><span className={`st ${answerStatus(p) === "none" || answerStatus(p) === "started" ? "" : "ok"}`}>{{ none: "Start", started: "Keep going", submitted: "Submitted ✓", reviewed: "Reviewed ✓" }[answerStatus(p)]}</span></button>}
               <button className="act" onClick={() => setMode("verse")}><span className="ico">📖</span><span className="txt"><b>Memory verse</b><small>{L.verse_ref}</small></span><span className={`st ${p?.verse_done ? "ok" : ""}`}>{p?.verse_done ? "Learned ✓" : "Play"}</span></button>
               <button className="act" onClick={() => setMode("notes")}><span className="ico">✏️</span><span className="txt"><b>My notes</b><small>What stood out to you</small></span><span className={`st ${p?.reflection ? "ok" : ""}`}>{p?.reflection ? "Saved ✓" : "Write"}</span></button>
             </div>
@@ -69,7 +70,6 @@ function Lesson() {
                 {L.scriptures.map((x, i) => <div key={i} className="scripture"><b>{x.ref}</b>{x.text && <p>{x.text}</p>}</div>)}
               </section>
             )}
-            {L.review.length > 0 && <section className="panel stack" style={{ gap: 8 }}><h2>Review questions</h2><p className="muted small">Work through these in your group.</p><ol className="sess-list">{L.review.map((x, i) => <li key={i}>{x}</li>)}</ol></section>}
             {L.discussion.length > 0 && <section className="panel stack" style={{ gap: 8 }}><h2>For discussion</h2><ol className="sess-list">{L.discussion.map((x, i) => <li key={i}>{x}</li>)}</ol></section>}
             <section>
               <h2 style={{ fontSize: "1.1rem", marginBottom: 8 }}>{firstName(me.student.name)}'s badges</h2>
@@ -78,6 +78,7 @@ function Lesson() {
           </>
         )}
         {me && L && g && mode === "verse" && <VerseGame text={L.verse_text} reference={L.verse_ref} grp={g} name={me.student.name} toMenu={toMenu} onDone={() => save({ verseDone: true })} />}
+        {me && L && mode === "answers" && <Answers questions={L.review} progress={p ?? null} toMenu={toMenu} save={save} />}
         {me && L && mode === "notes" && <Notes progress={p ?? null} toMenu={toMenu} onSave={reflection => save({ reflection })} />}
         {err && me && <p className="err">{err}</p>}
       </div></div>
@@ -133,7 +134,51 @@ function VerseGame({ text, reference, grp, name, toMenu, onDone }: { text: strin
   );
 }
 
-function Notes({ progress, toMenu, onSave }: { progress: Progress | null; toMenu: React.ReactNode; onSave: (reflection: string) => Promise<void> }) {
+function Answers({ questions, progress, toMenu, save }: { questions: string[]; progress: Progress | null; toMenu: React.ReactNode; save: (f: object) => Promise<boolean> }) {
+  const [a, setA] = useState<string[]>(() => questions.map((_, i) => progress?.answers?.[i]?.a || ""));
+  const [state, setState] = useState<"" | "saving" | "saved">(""), [arm, setArm] = useState(false), [busy, setBusy] = useState(false);
+  const locked = !!progress?.submitted_at, filled = a.filter(x => x.trim()).length;
+
+  // Save a moment after the student stops typing.
+  useEffect(() => {
+    if (locked || state !== "saving") return;
+    const t = setTimeout(async () => { if (await save({ answers: a })) setState("saved"); }, 1200);
+    return () => clearTimeout(t);
+  }, [a, state, locked, save]);
+
+  async function submit() {
+    setBusy(true);
+    if (await save({ answers: a, submit: true })) { confetti(); setArm(false); }
+    setBusy(false);
+  }
+
+  return (
+    <>
+      {toMenu}
+      <div><p className="eyebrow">Workbook questions</p><h1 style={{ fontSize: "1.6rem" }}>{locked ? "Your answers" : "Answer in your own words"}</h1></div>
+      {progress?.reviewed_at ? <div className="panel stack" style={{ gap: 6 }}><b>Reviewed by your teacher ✓</b>{progress.teacher_comment && <p>{progress.teacher_comment}</p>}</div>
+        : locked ? <p className="out" style={{ fontSize: "1rem" }}>Submitted ✓ Your teacher will look at them soon.</p>
+        : <p className="muted small">Your answers save as you type. When you're happy with them, tap Submit at the bottom.</p>}
+      {questions.map((q, i) => (
+        <div key={i} className="field">
+          <label htmlFor={`ans${i}`} style={{ fontSize: ".95rem", color: "var(--ink)" }}>{i + 1}. {q}</label>
+          {locked ? <p className="answer">{a[i] || <span className="muted">No answer</span>}</p>
+            : <textarea className="input" id={`ans${i}`} rows={3} value={a[i]} onChange={e => { const n = [...a]; n[i] = e.target.value; setA(n); setState("saving"); }} />}
+        </div>
+      ))}
+      {!locked && (
+        <>
+          <p className="muted small">{filled} of {questions.length} answered{state === "saving" ? " · Saving…" : state === "saved" ? " · Saved" : ""}</p>
+          {arm
+            ? <div className="stack" style={{ gap: 8 }}><p><strong>Submit your answers?</strong> You won't be able to change them after this.</p><button className="btn big" disabled={busy} onClick={submit}>Yes, submit</button><button className="btn ghost" onClick={() => setArm(false)}>Not yet</button></div>
+            : <button className="btn big" disabled={!filled} onClick={() => setArm(true)}>Submit my answers</button>}
+        </>
+      )}
+    </>
+  );
+}
+
+function Notes({ progress, toMenu, onSave }: { progress: Progress | null; toMenu: React.ReactNode; onSave: (reflection: string) => Promise<boolean> }) {
   const [text, setText] = useState(progress?.reflection || ""), [saved, setSaved] = useState(false);
   return (
     <>

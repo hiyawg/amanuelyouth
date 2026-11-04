@@ -85,6 +85,12 @@ create table if not exists shepherd_schedule (
 );
 create index if not exists shepherd_schedule_date_idx on shepherd_schedule(date);
 
+-- Workbook answers: one set per student per session, submitted once, then reviewed by a teacher.
+alter table progress add column if not exists answers jsonb not null default '[]';
+alter table progress add column if not exists submitted_at timestamptz;
+alter table progress add column if not exists reviewed_at timestamptz;
+alter table progress add column if not exists teacher_comment text not null default '';
+
 -- Security: only signed-in teachers can read or change data directly.
 -- Students and parents never touch the database; they go through the
 -- app's server routes, which check the rotating code, badge or student token.

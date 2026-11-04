@@ -24,6 +24,15 @@ export async function POST(req: Request) {
   const row: Record<string, unknown> = { student_id: s.id, date: L.date, updated_at: new Date().toISOString() };
   if (body.verseDone) row.verse_done = true;
   if (typeof body.reflection === "string") row.reflection = body.reflection.slice(0, 1000);
+  if (Array.isArray(body.answers) || body.submit) {
+    const cur = (await db.from("progress").select("submitted_at").eq("student_id", s.id).eq("date", L.date).maybeSingle()).data;
+    if (cur?.submitted_at) return fail("Your answers are already submitted. Ask your teacher if you need to change them.", 409);
+    if (Array.isArray(body.answers)) {
+      const qs = (L.review || []).map(r => r.q);
+      row.answers = qs.map((q, i) => ({ q, a: typeof body.answers[i] === "string" ? body.answers[i].slice(0, 4000) : "" }));
+    }
+    if (body.submit) row.submitted_at = new Date().toISOString();
+  }
   const up = await db.from("progress").upsert(row).select().single();
   if (up.error) return fail("That didn't save. Try again.", 500);
   return json({ progress: up.data, ...(await journey(s.id)) });

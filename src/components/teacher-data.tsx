@@ -68,6 +68,15 @@ function useTeacherDataValue() {
       if (ins.error) return { already: true, streak: prior, pickup: derived.present.get(st.id)?.pickup ?? null };
       return { already: false, streak: prior + 1, pickup: (ins.data as Checkin).pickup };
     },
+    /** Mark a student's workbook answers reviewed (with a comment), or reopen them so the student can edit. */
+    async reviewAnswers(sid: string, date: string, patch: { reviewed?: boolean; reopen?: boolean; comment?: string }) {
+      const row: Record<string, unknown> = {};
+      if (patch.comment !== undefined) row.teacher_comment = patch.comment.slice(0, 2000);
+      if (patch.reviewed !== undefined) row.reviewed_at = patch.reviewed ? new Date().toISOString() : null;
+      if (patch.reopen) { row.submitted_at = null; row.reviewed_at = null; }
+      const r = await sb().from("progress").update(row).eq("student_id", sid).eq("date", date);
+      if (r.error) throw new Error(r.error.message); reload();
+    },
     async checkout(checkinId: string) {
       const r = await sb().from("checkins").update({ out_at: new Date().toISOString() }).eq("id", checkinId);
       if (r.error) throw new Error(r.error.message); reload();

@@ -13,7 +13,7 @@ type Data = {
   today: { at: string; pickup: string | null; out_at: string | null } | null;
   streak: number; token: string;
   lesson: { session_no: number | null; title: string; big_idea: string; verse_ref: string; verse_text: string; discussion: string } | null;
-  progress: { verse_done: boolean; notes: boolean } | null;
+  progress: { verse_done: boolean; notes: boolean; submitted: boolean } | null;
 };
 
 export default function ParentBadge() {
@@ -64,6 +64,7 @@ export default function ParentBadge() {
                 {d.progress && <div className="chips">
                   {d.progress.verse_done && <span className="chip m">📖 Verse learned</span>}
                   {d.progress.notes && <span className="chip m">✏️ Wrote notes</span>}
+                  {d.progress.submitted && <span className="chip m">📝 Answers submitted</span>}
                 </div>}
                 <Link className="btn" href={`/lesson?t=${encodeURIComponent(d.token)}&b=${encodeURIComponent(s.badge)}`}>Do the lesson together</Link>
               </section>

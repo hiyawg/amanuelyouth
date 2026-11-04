@@ -193,6 +193,8 @@ textarea.input { resize: vertical; line-height: 1.45 }
 .qa { display: flex; flex-direction: column; gap: 3px }
 .qa b { font-weight: 700 }
 .qa p { color: var(--muted) }
+.answer { white-space: pre-line; color: var(--ink); background: var(--soft); border-radius: 12px; padding: 10px 12px; line-height: 1.55 }
+.qa.review .answer { color: var(--ink) }
 .teacher-only { background: color-mix(in srgb, var(--sun) 10%, var(--surface)) }
 .hour { width: 100%; border-collapse: collapse; font-size: .9rem }
 .hour td { padding: 6px 8px; border-top: 1px solid var(--line) }

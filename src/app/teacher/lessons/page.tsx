@@ -2,7 +2,8 @@
 // The discipleship course: read a session the way the teacher manual lays it out, or edit it.
 import { useEffect, useState } from "react";
 import { useTeacher } from "@/components/teacher-data";
-import { THE_HOUR, addDays, prettyDate, sessionLabel, sundayFrom, type Lesson } from "@/lib/shared";
+import { Avatar } from "@/components/ui";
+import { THE_HOUR, addDays, answerStatus, prettyDate, sessionLabel, sundayFrom, timeOf, type Lesson, type Progress } from "@/lib/shared";
 
 const blank = (date: string, session_no: number | null): Lesson => ({
   date, session_no, unit: "", title: "", subtitle: "", big_idea: "", objectives: ["", "", ""],
@@ -157,6 +158,7 @@ function SessionView({ l, onEdit }: { l: Lesson; onEdit: () => void }) {
         {l.subtitle && <p className="muted">{l.subtitle}</p>}
         {l.big_idea && <p><strong>Aim.</strong> {l.big_idea}</p>}
       </section>
+      {l.review.length > 0 && <AnswersPanel l={l} />}
       {l.objectives.length > 0 && <section className="panel stack" style={{ gap: 8 }}><h2>They should leave holding</h2><ol className="sess-list">{l.objectives.map((x, i) => <li key={i}>{x}</li>)}</ol></section>}
       <section className="panel stack teacher-only" style={{ gap: 8 }}>
         <h2>The hour</h2>
@@ -170,6 +172,69 @@ function SessionView({ l, onEdit }: { l: Lesson; onEdit: () => void }) {
       {l.stuck.length > 0 && <section className="panel stack teacher-only" style={{ gap: 8 }}><h2>Where students get stuck</h2><ul className="sess-list">{l.stuck.map((x, i) => <li key={i}>{x}</li>)}</ul></section>}
       {l.verse_ref && <section className="panel stack" style={{ gap: 8 }}><h2>Memory verse <span className="n">(With prayer · 5 min)</span></h2><blockquote className="verse">{l.verse_text}<br /><strong>{l.verse_ref}</strong></blockquote></section>}
       <p className="muted small">Shaded sections are for teachers only.</p>
+    </div>
+  );
+}
+
+const STATUS = { none: "Not started", started: "In progress", submitted: "Submitted", reviewed: "Reviewed" } as const;
+const RANK = { submitted: 0, started: 1, reviewed: 2, none: 3 } as const;
+
+/** Students' workbook answers for this session: who has submitted, and a place to review each one. */
+function AnswersPanel({ l }: { l: Lesson }) {
+  const t = useTeacher();
+  const [openId, setOpenId] = useState<string | null>(null);
+  const rows = t.progress.filter(p => p.date === l.date && answerStatus(p) !== "none")
+    .map(p => ({ p, s: t.byId.get(p.student_id) })).filter(o => o.s)
+    .sort((a, b) => RANK[answerStatus(a.p)] - RANK[answerStatus(b.p)] || a.s!.name.localeCompare(b.s!.name));
+  const count = (k: keyof typeof STATUS) => rows.filter(r => answerStatus(r.p) === k).length;
+  return (
+    <section className="panel stack" style={{ gap: 8 }}>
+      <h2>Workbook answers</h2>
+      <p className="muted small">{count("submitted")} waiting for review · {count("reviewed")} reviewed · {count("started")} still working</p>
+      <ul className="list">
+        {rows.length ? rows.map(({ p, s }) => {
+          const st = answerStatus(p);
+          return (
+            <li key={p.student_id} className="row" style={{ alignItems: "flex-start" }}>
+              <div className="who"><Avatar name={s!.name} grp={s!.grp} /><div><b>{s!.name}</b><span className="meta">{p.submitted_at ? `Submitted ${prettyDate(p.submitted_at.slice(0, 10))}, ${timeOf(p.submitted_at)}` : `${p.answers.filter(x => x.a.trim()).length} of ${l.review.length} answered so far`}</span></div></div>
+              <span className={`chip ${st === "submitted" ? "fire" : st === "reviewed" ? "visit" : "m"}`}>{STATUS[st]}</span>
+              <button className="btn ghost sm" onClick={() => setOpenId(openId === p.student_id ? null : p.student_id)}>{openId === p.student_id ? "Close" : st === "submitted" ? "Review" : "View"}</button>
+              {openId === p.student_id && <Review l={l} p={p} />}
+            </li>
+          );
+        }) : <li className="empty">No answers yet. Students answer from their lesson page after checking in.</li>}
+      </ul>
+    </section>
+  );
+}
+
+function Review({ l, p }: { l: Lesson; p: Progress }) {
+  const t = useTeacher();
+  const [comment, setComment] = useState(p.teacher_comment || ""), [msg, setMsg] = useState(""), [busy, setBusy] = useState(false);
+  const run = async (patch: Parameters<typeof t.actions.reviewAnswers>[2], done: string) => {
+    setBusy(true); setMsg("");
+    try { await t.actions.reviewAnswers(p.student_id, p.date, patch); setMsg(done); } catch (e: any) { setMsg(e.message); }
+    setBusy(false);
+  };
+  return (
+    <div className="stack" style={{ gap: 12, flexBasis: "100%", paddingTop: 6 }}>
+      {p.answers.map((x, i) => (
+        <div key={i} className="qa review">
+          <b>{i + 1}. {x.q}</b>
+          <p className="answer">{x.a.trim() || <span className="muted">No answer</span>}</p>
+          {l.review[i]?.a && <p className="small"><span className="eyebrow">Model answer</span> {l.review[i].a}</p>}
+        </div>
+      ))}
+      {p.submitted_at && (
+        <>
+          <div className="field"><label htmlFor={`cm-${p.student_id}`}>Comment for the student (they see this once you mark it reviewed)</label><textarea className="input" id={`cm-${p.student_id}`} rows={2} value={comment} onChange={e => setComment(e.target.value)} /></div>
+          <div className="chips" style={{ alignItems: "center" }}>
+            <button className="btn sm" disabled={busy} onClick={() => run({ reviewed: true, comment }, "Marked reviewed.")}>{p.reviewed_at ? "Update comment" : "Mark reviewed"}</button>
+            <button className="btn ghost sm" disabled={busy} onClick={() => run({ reopen: true }, "Reopened. The student can edit and submit again.")}>Reopen for edits</button>
+            {msg && <span className="muted small">{msg}</span>}
+          </div>
+        </>
+      )}
     </div>
   );
 }

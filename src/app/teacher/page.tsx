@@ -20,7 +20,7 @@ export default function Today() {
   function chips(sid: string) {
     if (!L) return null;
     const p = t.prog(sid, L.date); if (!p) return null;
-    return <>{p.verse_done && <span className="chip m">📖 Verse</span>}{p.reflection?.trim() && <span className="chip m">✏️ Notes</span>}</>;
+    return <>{p.verse_done && <span className="chip m">📖 Verse</span>}{p.reflection?.trim() && <span className="chip m">✏️ Notes</span>}{p.submitted_at && <span className="chip m">📝 Answers in</span>}</>;
   }
   function exportCsv() {
     const rows = [["Name", "Group", "Checked in", "Method", "Picked up"], ...[...here].reverse().map(({ c, s }) => [s!.name, GROUPS[s!.grp].label, timeOf(c.at), METHODS[c.method], c.out_at ? timeOf(c.out_at) : ""])];
