@@ -77,6 +77,7 @@ export default function Lessons() {
                 <li key={l.date} className="row">
                   <div className="who"><div><b>{l.session_no ? `${l.session_no}. ` : ""}{l.title}</b><span className="meta">{prettyDate(l.date)}{l.verse_ref ? ` · ${l.verse_ref}` : ""}</span>
                     {ps.length > 0 && <span className="meta">{ps.filter(p => p.verse_done).length} learned the verse · {ps.filter(p => p.reflection?.trim()).length} wrote notes</span>}</div></div>
+                  {ps.some(p => answerStatus(p) === "submitted") && <span className="chip fire">📝 {ps.filter(p => answerStatus(p) === "submitted").length} to review</span>}
                   {t.currentLesson?.date === l.date && <span className="chip visit">This week</span>}
                   <button className="btn ghost sm" onClick={() => open(l)}>{orig === l.date ? "Open" : "View"}</button>
                 </li>
