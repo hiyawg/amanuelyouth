@@ -31,13 +31,25 @@ export default function Kiosk() {
           return (
             <section key={k} className="kgroup">
               <h3><span className={`chip g-${k}`}>{GROUPS[k].grades}</span>{GROUPS[k].label}</h3>
-              <div className="tiles">
-                {l.map(s => {
-                  const here = t.present.has(s.id);
-                  return <button key={s.id} className={`tile g-${k}${here ? " here" : ""}`} onClick={() => tap(s)}>
-                    {here ? <span className="av">✓</span> : <Avatar name={s.name} grp={s.grp} />}{s.name}
-                  </button>;
-                })}
+              <div className="tbl-wrap">
+                <table className="tbl kiosk">
+                  <thead><tr><th>Name</th><th>Today</th><th className="num">Streak</th><th><span className="sr">Check in</span></th></tr></thead>
+                  <tbody>
+                    {l.map(s => {
+                      const here = t.present.has(s.id), st = t.streak(s.id);
+                      return (
+                        <tr key={s.id} className={`g-${k}${here ? " here" : ""}`}>
+                          <td><div className="who">{here ? <span className="av">✓</span> : <Avatar name={s.name} grp={s.grp} />}<b>{s.name}</b></div></td>
+                          <td>{here ? <span className="out">Checked in ✓</span> : <span className="muted">Not yet</span>}</td>
+                          <td className="num">{st > 0 ? <span className="chip fire">🔥 {st}</span> : "–"}</td>
+                          <td className="acts">{here
+                            ? <button className="btn ghost" onClick={() => tap(s)}>Already in</button>
+                            : <button className="btn" onClick={() => tap(s)} aria-label={`Check in ${s.name}`}>I'm here</button>}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             </section>
           );

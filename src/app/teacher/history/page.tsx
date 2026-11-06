@@ -2,11 +2,11 @@
 // Past classes: who came and who missed on any class day, and each student's attendance record.
 import { useMemo, useState } from "react";
 import { useTeacher } from "@/components/teacher-data";
-import { Avatar } from "@/components/ui";
 import { saveFile } from "@/lib/browser";
 import { GROUPS, GROUP_KEYS, METHODS, dayKey, prettyDate, timeOf, type Checkin, type Student } from "@/lib/shared";
 
 const RECENT = 10;
+const shortDate = (key: string) => { const [y, m, d] = key.split("-").map(Number); return new Date(y, m - 1, d).toLocaleDateString(undefined, { month: "short", day: "numeric" }); };
 
 export default function History() {
   const t = useTeacher();
@@ -36,6 +36,8 @@ export default function History() {
     const last = t.classDays.find(x => attended.get(s.id)?.has(x));
     return { s, days, here, last, misses: days.filter(x => !attended.get(s.id)?.has(x)) };
   }).filter(r => r.days.length).sort((a, b) => a.here / a.days.length - b.here / b.days.length || a.s.name.localeCompare(b.s.name));
+
+  const grid = past.slice(0, RECENT);
 
   function exportCsv() {
     const rows = [["Name", "Group", "Status", "Checked in", "Method"],
@@ -81,46 +83,77 @@ export default function History() {
       <div className="cols">
         <section className="panel">
           <h2>Missed {missed.length > 0 && <span className="n">({missed.length})</span>}</h2>
-          {missed.length ? GROUP_KEYS.map(k => {
-            const g = missed.filter(s => s.grp === k);
-            return g.length > 0 && (
-              <div key={k} style={{ marginTop: 10 }}>
-                <p className="eyebrow">{GROUPS[k].label}</p>
-                <ul className="list">
-                  {g.map(s => {
+          {missed.length ? (
+            <div className="tbl-wrap">
+              <table className="tbl">
+                <thead><tr><th>Name</th><th>Group</th><th className="num">Last here</th></tr></thead>
+                <tbody>
+                  {GROUP_KEYS.flatMap(k => missed.filter(s => s.grp === k)).map(s => {
                     const last = t.classDays.find(x => x < date && attended.get(s.id)?.has(x));
-                    return <li key={s.id} className="row"><div className="who"><Avatar name={s.name} grp={s.grp} /><div><b>{s.name}</b><span className="meta">{last ? `Last here ${prettyDate(last)}` : "Hasn't come yet"}</span></div></div></li>;
+                    return (
+                      <tr key={s.id} className={`g-${s.grp}`}>
+                        <td><b>{s.name}</b></td>
+                        <td><span className="chip">{GROUPS[s.grp].label}</span></td>
+                        <td className="num">{last ? prettyDate(last) : <span className="muted">Hasn't come yet</span>}</td>
+                      </tr>
+                    );
                   })}
-                </ul>
-              </div>
-            );
-          }) : <ul className="list"><li className="empty">Nobody missed this class. 🎉</li></ul>}
+                </tbody>
+              </table>
+            </div>
+          ) : <p className="empty">Nobody missed this class. 🎉</p>}
         </section>
         <section className="panel">
           <h2>Came {came.length > 0 && <span className="n">({came.length})</span>}</h2>
-          <ul className="list">
-            {came.length ? came.map(({ c, s }) => (
-              <li key={c.id} className="row">
-                <div className="who"><Avatar name={s.name} grp={s.grp} /><div><b>{s.name}</b><span className="meta">{timeOf(c.at)} · {METHODS[c.method]}</span></div></div>
-                <span className={`chip g-${s.grp}`}>{GROUPS[s.grp].label}</span>
-                {s.visitor && <span className="chip visit">Visitor</span>}
-              </li>
-            )) : <li className="empty">No one checked in.</li>}
-          </ul>
+          {came.length ? (
+            <div className="tbl-wrap">
+              <table className="tbl">
+                <thead><tr><th>Name</th><th>Group</th><th className="num">Checked in</th><th>How</th></tr></thead>
+                <tbody>
+                  {came.map(({ c, s }) => (
+                    <tr key={c.id} className={`g-${s.grp}`}>
+                      <td><b>{s.name}</b>{s.visitor && <> <span className="chip visit">Visitor</span></>}</td>
+                      <td><span className="chip">{GROUPS[s.grp].label}</span></td>
+                      <td className="num">{timeOf(c.at)}</td>
+                      <td>{METHODS[c.method]}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : <p className="empty">No one checked in.</p>}
         </section>
       </div>
 
       <section className="panel" style={{ marginTop: 16 }}>
         <h2>Each student</h2>
-        <p className="muted small">The last {RECENT} classes since each student joined, lowest attendance first.</p>
-        <ul className="list">
-          {records.length ? records.map(({ s, days, here, last, misses }) => (
-            <li key={s.id} className="row">
-              <div className="who"><Avatar name={s.name} grp={s.grp} /><div><b>{s.name}</b><span className="meta">Came to {here} of {days.length} · {last ? `Last here ${last === t.today ? "today" : prettyDate(last)}` : "Hasn't come yet"}</span></div></div>
-              {misses.length > 0 && <div className="chips">{misses.slice(0, 5).map(x => <span key={x} className="chip m">Missed {prettyDate(x)}</span>)}{misses.length > 5 && <span className="chip m">+{misses.length - 5} more</span>}</div>}
-            </li>
-          )) : <li className="empty">Records appear after your first class.</li>}
-        </ul>
+        <p className="muted small">The last {RECENT} classes, newest first, lowest attendance at the top. ✓ came · ✗ missed · blank means they hadn't joined yet.</p>
+        {records.length ? (
+          <div className="tbl-wrap">
+            <table className="tbl grid">
+              <thead>
+                <tr>
+                  <th>Name</th><th>Group</th><th className="num">Came</th><th className="num">Last here</th>
+                  {grid.map(x => <th key={x} className={`day${x === date ? " sel" : ""}`}><button onClick={() => setPicked(x)} title={prettyDate(x, true)}>{shortDate(x)}</button></th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {records.map(({ s, days, here, last }) => (
+                  <tr key={s.id} className={`g-${s.grp}`}>
+                    <td><b>{s.name}</b></td>
+                    <td><span className="chip">{GROUPS[s.grp].label}</span></td>
+                    <td className="num">{here}/{days.length} <span className="muted small">({pct(here, days.length)}%)</span></td>
+                    <td className="num">{last ? (last === t.today ? "Today" : prettyDate(last)) : <span className="muted">Not yet</span>}</td>
+                    {grid.map(x => {
+                      const on = x >= joined.get(s.id)!, came = attended.get(s.id)?.has(x);
+                      return <td key={x} className={`day${x === date ? " sel" : ""}`}>{!on ? "" : came ? <span className="yes" aria-label="Came">✓</span> : <span className="no" aria-label="Missed">✗</span>}</td>;
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : <p className="empty">Records appear after your first class.</p>}
       </section>
     </>
   );

@@ -2,7 +2,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useTeacher } from "@/components/teacher-data";
-import { Avatar } from "@/components/ui";
 import { saveFile } from "@/lib/browser";
 import { GROUPS, GROUP_KEYS, METHODS, prettyDate, timeOf } from "@/lib/shared";
 
@@ -14,6 +13,9 @@ export default function Today() {
   const pct = (a: number, b: number) => b ? Math.round(a / b * 100) : 0;
   const here = t.todays.map(c => ({ c, s: t.byId.get(c.student_id) })).filter(o => o.s);
   const absent = t.students.filter(s => !t.present.has(s.id));
+  const lastSeen = new Map<string, string>();
+  // checkins arrive newest first, so the first earlier-than-today date per student is their last visit
+  for (const c of t.checkins) if (c.date < t.today && !lastSeen.has(c.student_id)) lastSeen.set(c.student_id, c.date);
   const medical = t.students.filter(s => s.note && t.present.has(s.id) && !t.present.get(s.id)!.out_at);
 
   const run = (f: () => Promise<unknown>) => f().catch(e => setMsg(e.message));
@@ -61,57 +63,86 @@ export default function Today() {
         </div>
       )}
 
+      <section className="panel" style={{ marginBottom: 16 }}>
+        <h2>Here today {here.length > 0 && <span className="n">({here.length})</span>}</h2>
+        {here.length ? (
+          <div className="tbl-wrap">
+            <table className="tbl">
+              <thead><tr><th>Name</th><th>Group</th><th className="num">Checked in</th><th>How</th><th className="num">Streak</th><th>This week</th><th>Pickup</th></tr></thead>
+              <tbody>
+                {here.map(({ c, s }) => {
+                  const st = t.streak(s!.id);
+                  return (
+                    <tr key={c.id} className={`g-${s!.grp}`}>
+                      <td><b>{s!.name}</b>{s!.visitor && <> <span className="chip visit">First visit</span></>}{s!.note && <> <span className="chip" style={{ "--c": "var(--bad)", "--c-ink": "var(--bad)" } as React.CSSProperties} title={s!.note}>⚠ Note</span></>}</td>
+                      <td><span className="chip">{GROUPS[s!.grp].label}</span></td>
+                      <td className="num">{timeOf(c.at)}</td>
+                      <td>{METHODS[c.method]}</td>
+                      <td className="num">{st > 1 ? <span className="chip fire">🔥 {st}</span> : "–"}</td>
+                      <td><div className="chips">{chips(s!.id)}</div></td>
+                      <td className="acts" style={{ justifyContent: "flex-start" }}>
+                        {c.out_at ? <span className="out">Picked up {timeOf(c.out_at)}</span>
+                          : c.pickup ? (coId === c.id
+                            ? <form className="co" onSubmit={e => { e.preventDefault(); release(c.id, c.pickup); }}>
+                                <input className="input" autoFocus inputMode="numeric" maxLength={3} placeholder="Pickup code" aria-label="Parent's pickup code" value={coCode} onChange={e => setCoCode(e.target.value)} />
+                                <button className="btn sm">Release</button>
+                                <button type="button" className="btn ghost sm" onClick={() => setCoId(null)}>Cancel</button>
+                                {coErr && <span className="err">{coErr}</span>}
+                              </form>
+                            : <button className="btn ghost sm" onClick={() => { setCoId(c.id); setCoCode(""); setCoErr(""); }}>Check out</button>)
+                          : <span className="muted small">No code needed</span>}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : <p className="empty">No one yet. Students appear here the moment they scan, tap or get scanned.</p>}
+      </section>
+
       <div className="cols">
         <section className="panel">
-          <h2>Here today {here.length > 0 && <span className="n">({here.length})</span>}</h2>
-          <ul className="list">
-            {here.length ? here.map(({ c, s }) => {
-              const st = t.streak(s!.id);
-              return (
-                <li key={c.id} className="row">
-                  <div className="who"><Avatar name={s!.name} grp={s!.grp} /><div><b>{s!.name}</b><span className="meta">{timeOf(c.at)} · {METHODS[c.method]}</span></div></div>
-                  <span className={`chip g-${s!.grp}`}>{GROUPS[s!.grp].label}</span>
-                  {s!.visitor && <span className="chip visit">First visit</span>}
-                  {st > 1 && <span className="chip fire">🔥 {st} in a row</span>}
-                  {chips(s!.id)}
-                  {c.out_at ? <span className="out">Picked up {timeOf(c.out_at)}</span>
-                    : c.pickup ? (coId === c.id
-                      ? <form className="co" onSubmit={e => { e.preventDefault(); release(c.id, c.pickup); }}>
-                          <input className="input" autoFocus inputMode="numeric" maxLength={3} placeholder="Pickup code" aria-label="Parent's pickup code" value={coCode} onChange={e => setCoCode(e.target.value)} />
-                          <button className="btn sm">Release</button>
-                          <button type="button" className="btn ghost sm" onClick={() => setCoId(null)}>Cancel</button>
-                          {coErr && <span className="err">{coErr}</span>}
-                        </form>
-                      : <button className="btn ghost sm" onClick={() => { setCoId(c.id); setCoCode(""); setCoErr(""); }}>Check out</button>)
-                    : null}
-                </li>
-              );
-            }) : <li className="empty">No one yet. Students appear here the moment they scan, tap or get scanned.</li>}
-          </ul>
+          <div className="panel-head"><h2>Not here yet {absent.length > 0 && <span className="n">({absent.length})</span>}</h2>{absent.length > 0 && <button className="btn ghost sm" onClick={() => run(async () => { for (const s of absent) await t.actions.checkIn(s, "teacher"); })}>Mark everyone present</button>}</div>
+          {absent.length ? (
+            <div className="tbl-wrap">
+              <table className="tbl">
+                <thead><tr><th>Name</th><th>Group</th><th className="num">Last seen</th><th><span className="sr">Actions</span></th></tr></thead>
+                <tbody>
+                  {absent.map(s => (
+                    <tr key={s.id} className={`g-${s.grp}`}>
+                      <td><b>{s.name}</b></td>
+                      <td><span className="chip">{GROUPS[s.grp].label}</span></td>
+                      <td className="num">{lastSeen.get(s.id) ? prettyDate(lastSeen.get(s.id)!) : "–"}</td>
+                      <td className="acts"><button className="btn ghost sm" onClick={() => run(() => t.actions.checkIn(s, "teacher"))}>Mark present</button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : t.students.length ? <p className="empty">Everyone is here. 🎉</p>
+            : <p className="empty">No students yet. Add them under <Link href="/teacher/students">Students &amp; badges</Link>.</p>}
         </section>
-        <div className="stack">
-          <section className="panel">
-            <div className="panel-head"><h2>Not here yet</h2>{absent.length > 0 && <button className="btn ghost sm" onClick={() => run(async () => { for (const s of absent) await t.actions.checkIn(s, "teacher"); })}>Mark everyone present</button>}</div>
-            <ul className="list">
-              {absent.length ? absent.map(s => (
-                <li key={s.id} className="row">
-                  <div className="who"><Avatar name={s.name} grp={s.grp} /><div><b>{s.name}</b><span className="meta">{GROUPS[s.grp].label}</span></div></div>
-                  <button className="btn ghost sm" onClick={() => run(() => t.actions.checkIn(s, "teacher"))}>Mark present</button>
-                </li>
-              )) : t.students.length ? <li className="empty">Everyone is here. 🎉</li>
-                : <li className="empty">No students yet. Add them under <Link href="/teacher/students">Students &amp; badges</Link>.</li>}
-            </ul>
-          </section>
-          <section className="panel">
-            <h2>Check in on these kids</h2>
-            <p className="muted small">Missed the last 3 classes. A call or card goes a long way.</p>
-            <ul className="list">
-              {t.followUps.length ? t.followUps.map(s => (
-                <li key={s.id} className="row"><div className="who"><Avatar name={s.name} grp={s.grp} /><div><b>{s.name}</b><span className="meta">{GROUPS[s.grp].label}</span></div></div></li>
-              )) : <li className="empty">Nobody has missed 3 classes in a row.</li>}
-            </ul>
-          </section>
-        </div>
+        <section className="panel">
+          <h2>Check in on these kids</h2>
+          <p className="muted small">Missed the last 3 classes. A call or card goes a long way.</p>
+          {t.followUps.length ? (
+            <div className="tbl-wrap">
+              <table className="tbl">
+                <thead><tr><th>Name</th><th>Group</th><th className="num">Last seen</th></tr></thead>
+                <tbody>
+                  {t.followUps.map(s => (
+                    <tr key={s.id} className={`g-${s.grp}`}>
+                      <td><b>{s.name}</b></td>
+                      <td><span className="chip">{GROUPS[s.grp].label}</span></td>
+                      <td className="num">{lastSeen.get(s.id) ? prettyDate(lastSeen.get(s.id)!) : "Not in 180 days"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : <p className="empty">Nobody has missed 3 classes in a row.</p>}
+        </section>
       </div>
     </>
   );
