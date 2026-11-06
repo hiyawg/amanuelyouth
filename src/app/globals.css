@@ -156,6 +156,23 @@ textarea.input { resize: vertical; line-height: 1.45 }
 .badge code { font-size: .8rem; letter-spacing: .1em; color: var(--muted) }
 .badge .note { font-size: .75rem; color: var(--bad); padding: 0 10px }
 .badge .acts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; padding: 0 10px }
+.seg { display: inline-flex; gap: 2px; padding: 3px; margin-top: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px }
+.seg button { border: 0; background: none; color: var(--muted); font-weight: 700; font-size: .85rem; padding: 6px 14px; border-radius: 9px; cursor: pointer }
+.seg button.on { background: var(--accent); color: var(--accent-ink) }
+.tbl-tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 8px }
+.tbl-tools input { flex: 1 1 220px; width: auto } .tbl-tools select { flex: 0 1 180px; width: auto }
+.tbl-wrap { overflow-x: auto; margin: 8px -4px 0 }
+.tbl { width: 100%; border-collapse: collapse; font-size: .9rem; font-variant-numeric: tabular-nums }
+.tbl th { text-align: left; font-size: .74rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 8px; border-bottom: 1px solid var(--line); white-space: nowrap; position: sticky; top: 0; background: var(--surface) }
+.tbl th button { all: unset; cursor: pointer } .tbl th button:focus-visible { outline: 2px solid var(--accent); border-radius: 4px }
+.tbl td { padding: 9px 8px; border-bottom: 1px solid var(--line); vertical-align: middle }
+.tbl tbody tr { box-shadow: inset 3px 0 0 var(--c) } .tbl tbody tr:hover { background: color-mix(in srgb, var(--c) 6%, transparent) }
+.tbl td:first-child { white-space: nowrap } .tbl td:first-child, .tbl th:first-child { padding-left: 14px }
+.tbl .num { text-align: right; white-space: nowrap } .tbl th.num button { text-align: right }
+.tbl code { font-size: .8rem; letter-spacing: .08em; color: var(--muted) }
+.tbl .note { color: var(--bad); font-size: .8rem; min-width: 120px }
+.tbl .acts { display: flex; gap: 4px; justify-content: flex-end; white-space: nowrap }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0) }
 .share { border-color: var(--c); margin-top: 12px }
 .share-grid { display: flex; gap: 16px; align-items: flex-start }
 @media (max-width: 560px) { .share-grid { flex-direction: column; align-items: center } }
