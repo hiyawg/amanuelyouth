@@ -94,6 +94,10 @@ function useTeacherDataValue() {
       const r = await sb().from("students").insert(rows.map(x => ({ ...x, badge: newBadge() })));
       if (r.error) throw new Error(r.error.message); reload();
     },
+    async updateStudent(id: string, patch: Partial<Student>) {
+      const r = await sb().from("students").update(patch).eq("id", id);
+      if (r.error) throw new Error(r.error.message); reload();
+    },
     async removeStudents(ids: string[]) {
       const r = await sb().from("students").delete().in("id", ids);
       if (r.error) throw new Error(r.error.message); reload();

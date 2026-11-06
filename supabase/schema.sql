@@ -91,6 +91,10 @@ alter table progress add column if not exists submitted_at timestamptz;
 alter table progress add column if not exists reviewed_at timestamptz;
 alter table progress add column if not exists teacher_comment text not null default '';
 
+-- A parent's cell number, so teachers can text them the badge link. Only teachers can read it.
+alter table students add column if not exists parent_phone text not null default '';
+alter table students add column if not exists parent_email text not null default '';
+
 -- Security: only signed-in teachers can read or change data directly.
 -- Students and parents never touch the database; they go through the
 -- app's server routes, which check the rotating code, badge or student token.

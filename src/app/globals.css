@@ -150,7 +150,7 @@ textarea.input { resize: vertical; line-height: 1.45 }
 .tbl.kiosk tr.here td { opacity: .7 }
 
 /* students & badges */
-.addform { display: grid; grid-template-columns: 1.3fr 1fr 1.4fr auto; gap: 10px; align-items: end }
+.addform { display: grid; grid-template-columns: 1.3fr 1fr 1.4fr 1.1fr auto; gap: 10px; align-items: end }
 @media (max-width: 760px) { .addform { grid-template-columns: 1fr 1fr } .addform .btn { grid-column: 1 / -1 } }
 .badges { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; margin-top: 16px }
 .badge { background: var(--surface); box-shadow: var(--shadow); border-radius: 20px; padding: 0 0 14px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; overflow: hidden }
@@ -185,6 +185,9 @@ textarea.input { resize: vertical; line-height: 1.45 }
 .tbl .yes { color: var(--ok); font-weight: 800 } .tbl .no { color: var(--bad); opacity: .75 }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0) }
 .share { border-color: var(--c); margin-top: 12px }
+.editgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0 }
+.editgrid .wide { grid-column: 1 / -1 }
+@media (max-width: 560px) { .editgrid { grid-template-columns: 1fr } }
 .share-grid { display: flex; gap: 16px; align-items: flex-start }
 @media (max-width: 560px) { .share-grid { flex-direction: column; align-items: center } }
 

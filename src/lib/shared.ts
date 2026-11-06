@@ -5,8 +5,19 @@ export type Method = "qr" | "badge" | "kiosk" | "teacher";
 
 export type Student = {
   id: string; name: string; grp: Group; note: string; badge: string;
-  visitor: boolean; sample: boolean; created_at: string;
+  visitor: boolean; sample: boolean; created_at: string; parent_phone: string; parent_email: string;
 };
+/** A phone number as typed, reduced to digits for texting. 10 digits are taken as a US number. Empty if it can't be one. */
+export function cleanPhone(raw: string): string {
+  const d = raw.replace(/\D/g, "");
+  if (d.length < 7 || d.length > 15) return "";
+  if (raw.trim().startsWith("+")) return "+" + d;
+  return d.length === 10 ? "+1" + d : d.length === 11 && d[0] === "1" ? "+" + d : d;
+}
+/** A link that opens the phone's Messages app with the number and text filled in. `?&body=` works on both iPhone and Android. */
+export const cleanEmail = (raw: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw.trim()) ? raw.trim().toLowerCase() : "";
+export const mailHref = (email: string, subject: string, body: string) => `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+export const smsHref = (phone: string, body: string) => `sms:${phone}?&body=${encodeURIComponent(body)}`;
 export type Checkin = {
   id: string; student_id: string; date: string; at: string; method: Method;
   pickup: string | null; out_at: string | null;
