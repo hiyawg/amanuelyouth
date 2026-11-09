@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTeacher } from "@/components/teacher-data";
 import { Avatar, Celebrate, Qr, type Celebration } from "@/components/ui";
 import { clockOffset, confetti } from "@/lib/browser";
-import { METHODS, WINDOW_MS, codeFor, curWin, prettyDate, timeOf } from "@/lib/shared";
+import { METHODS, WINDOW_MS, codeFor, curWin, prettyDate, scannedBadge, timeOf } from "@/lib/shared";
 
 export default function Door() {
   const t = useTeacher();
@@ -45,7 +45,7 @@ export default function Door() {
 
   async function onScan(e: React.FormEvent) {
     e.preventDefault();
-    const b = scan.trim().toUpperCase(); setScan("");
+    const b = scannedBadge(scan); setScan("");
     if (!b) return;
     const s = t.students.find(x => x.badge === b);
     if (!s) { setScanMsg({ ok: false, text: `No student has badge ${b}.` }); return; }

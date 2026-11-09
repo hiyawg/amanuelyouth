@@ -1,6 +1,6 @@
 // Small browser helpers: confetti, file saves, badge images, local storage.
 import QRCode from "qrcode";
-import { GROUPS, type Student } from "./shared";
+import { GROUPS, badgeLink, type Student } from "./shared";
 
 export function confetti() {
   if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -37,7 +37,7 @@ export function badgePng(s: Pick<Student, "name" | "grp" | "badge"> & { note?: s
   x.fillStyle = "#17203B"; let fs = 58;
   do { x.font = `800 ${fs}px sans-serif`; fs -= 2; } while (x.measureText(s.name).width > W - 60 && fs > 24);
   x.fillText(s.name, W / 2, 240);
-  const q = QRCode.create(s.badge, { errorCorrectionLevel: "M" }).modules;
+  const q = QRCode.create(badgeLink(location.origin, s.badge), { errorCorrectionLevel: "M" }).modules;
   const n = q.size, cell = Math.floor(380 / n), off = (W - cell * n) / 2, top = 285;
   for (let r = 0; r < n; r++) for (let k = 0; k < n; k++) if (q.get(r, k)) x.fillRect(off + k * cell, top + r * cell, cell, cell);
   x.fillStyle = "#5A6583"; x.font = "600 30px monospace"; x.fillText(s.badge, W / 2, top + cell * n + 55);

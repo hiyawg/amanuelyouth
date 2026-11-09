@@ -1,10 +1,5 @@
 // A student's own lesson, progress and badges, using the token their phone keeps.
-import { admin, currentLesson, fail, getStudent, journey, json, lessonFor, publicStudent, readStudentToken } from "@/lib/server";
-
-async function who(token: unknown) {
-  const id = readStudentToken(token);
-  return id ? getStudent(id) : null;
-}
+import { admin, currentLesson, fail, journey, json, lessonFor, publicStudent, studentFromToken as who } from "@/lib/server";
 
 export async function GET(req: Request) {
   const s = await who(new URL(req.url).searchParams.get("token"));

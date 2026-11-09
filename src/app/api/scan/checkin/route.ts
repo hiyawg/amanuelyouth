@@ -1,12 +1,12 @@
 // Finish a phone check-in: an existing student (by token or pick), or a first-time visitor.
-import { admin, checkIn, currentLesson, fail, getStudent, json, publicStudent, readStudentToken, readTicket, studentStreak, studentToken } from "@/lib/server";
+import { admin, checkIn, currentLesson, fail, getStudent, json, publicStudent, readTicket, studentFromToken, studentStreak, studentToken } from "@/lib/server";
 import { GROUP_KEYS, newBadge, type Group, type Student } from "@/lib/shared";
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
   if (!readTicket(body.ticket)) return fail("Your check-in timed out. Scan the code again.", 401);
   let student: Student | null = null;
-  if (body.token) student = await getStudent(readStudentToken(body.token) || "");
+  if (body.token) student = await studentFromToken(body.token);
   else if (typeof body.studentId === "string") student = await getStudent(body.studentId);
   else if (body.newStudent) {
     const name = String(body.newStudent.name || "").trim().slice(0, 40);
@@ -21,6 +21,6 @@ export async function POST(req: Request) {
   const [{ streak }, lesson] = await Promise.all([studentStreak(student.id), currentLesson()]);
   return json({
     student: publicStudent(student), already: res.already, pickup: res.checkin?.pickup || null,
-    streak, token: studentToken(student.id), hasLesson: !!lesson,
+    streak, token: studentToken(student), hasLesson: !!lesson,
   });
 }

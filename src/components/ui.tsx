@@ -2,7 +2,7 @@
 // Shared UI pieces: logo, QR code, avatar, celebration overlay.
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
-import { GROUPS, initials, type Group } from "@/lib/shared";
+import { GROUPS, badgeLink, initials, type Group } from "@/lib/shared";
 
 export function Logo({ size = 38 }: { size?: number }) {
   return (
@@ -23,6 +23,11 @@ export function Qr({ text, className }: { text: string; className?: string }) {
     return () => { live = false; };
   }, [text]);
   return <div className={className} dangerouslySetInnerHTML={{ __html: svg }} />;
+}
+
+/** A badge's QR code. The door scanner reads it, and a phone camera opens the student's lesson. */
+export function BadgeQr({ badge, className }: { badge: string; className?: string }) {
+  return <Qr className={className} text={badgeLink(typeof location === "undefined" ? "" : location.origin, badge)} />;
 }
 
 export function Avatar({ name, grp, size }: { name: string; grp: Group; size?: number }) {

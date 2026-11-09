@@ -15,7 +15,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ badge: 
   const prog = L ? (await db.from("progress").select("verse_done, reflection, submitted_at").eq("student_id", st.id).eq("date", L.date).maybeSingle()).data : null;
   return json({
     student: { name: st.name, grp: st.grp, badge: st.badge },
-    today: today.data, streak: j.streak, token: studentToken(st.id),
+    today: today.data, streak: j.streak, token: studentToken(st),
     lesson: L ? { session_no: L.session_no, title: L.title, big_idea: L.big_idea, verse_ref: L.verse_ref, verse_text: L.verse_text, discussion: L.discussion?.[0] || "" } : null,
     progress: prog ? { verse_done: prog.verse_done, notes: !!prog.reflection?.trim(), submitted: !!prog.submitted_at } : null,
   });

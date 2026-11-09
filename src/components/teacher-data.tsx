@@ -98,6 +98,12 @@ function useTeacherDataValue() {
       const r = await sb().from("students").update(patch).eq("id", id);
       if (r.error) throw new Error(r.error.message); reload();
     },
+    /** Give a student a new badge code. The old badge, its links and phones signed in with it stop working. */
+    async replaceBadge(id: string) {
+      const badge = newBadge(), r = await sb().from("students").update({ badge }).eq("id", id);
+      if (r.error) throw new Error(r.error.message); reload();
+      return badge;
+    },
     async removeStudents(ids: string[]) {
       const r = await sb().from("students").delete().in("id", ids);
       if (r.error) throw new Error(r.error.message); reload();

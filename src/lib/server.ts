@@ -21,12 +21,16 @@ function same(a: string, b: string): boolean {
   return x.length === y.length && timingSafeEqual(x, y);
 }
 
-/** Long-lived token a student's phone keeps so they can check in and open lessons again. */
-export const studentToken = (id: string) => `${id}.${sign("student:" + id)}`;
-export function readStudentToken(t: unknown): string | null {
+/** Long-lived token a student's phone keeps so they can check in and open lessons again.
+ * It's tied to the badge code, so giving a student a new badge signs out phones that used the old one. */
+export const studentToken = (s: Pick<Student, "id" | "badge">) => `${s.id}.${sign(`student:${s.id}:${s.badge}`)}`;
+export async function studentFromToken(t: unknown): Promise<Student | null> {
   if (typeof t !== "string") return null;
   const [id, sig] = t.split(".");
-  return id && sig && same(sig, sign("student:" + id)) ? id : null;
+  if (!id || !sig) return null;
+  const s = await getStudent(id);
+  // Tokens from before badges could be replaced were signed without the badge code.
+  return s && (same(sig, sign(`student:${s.id}:${s.badge}`)) || same(sig, sign("student:" + s.id))) ? s : null;
 }
 
 /** Short-lived ticket proving the phone scanned today's door code (10 minutes). */
@@ -46,6 +50,7 @@ export const json = (data: unknown, status = 200) => Response.json(data, { statu
 export const fail = (message: string, status = 400) => Response.json({ error: message }, { status });
 
 export async function getStudent(id: string): Promise<Student | null> {
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
   const { data } = await admin().from("students").select("*").eq("id", id).maybeSingle();
   return data as Student | null;
 }

@@ -118,6 +118,10 @@ export function randomCode(n: number): string {
   return Array.from(r, x => ALPH[x % ALPH.length]).join("");
 }
 export const newBadge = () => "SHP-" + randomCode(6);
+/** What a badge's QR code holds: a link a phone camera opens to the student's lesson. */
+export const badgeLink = (origin: string, badge: string) => `${origin}/s/${badge}`;
+/** The badge code in what a scanner typed: the link above, or a bare code from badges printed before it. */
+export const scannedBadge = (text: string) => { const t = text.trim().toUpperCase(); return t.match(/SHP-[A-Z0-9]+/)?.[0] ?? t; };
 
 /* Rotating door code: derived from the session secret and the 30-second window. */
 export const WINDOW_MS = 30000;

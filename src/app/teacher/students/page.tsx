@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useTeacher } from "@/components/teacher-data";
-import { Qr } from "@/components/ui";
+import { BadgeQr } from "@/components/ui";
 import { badgePng, recall, safeName, saveFile, store } from "@/lib/browser";
 import { CHURCH_NAME, GROUPS, GROUP_KEYS, SAMPLE_STUDENTS, cleanEmail, cleanPhone, firstName, mailHref, prettyDate, smsHref, type Group, type Student } from "@/lib/shared";
 
@@ -63,7 +63,7 @@ export default function Students() {
             <div className="band">{GROUPS[s.grp].label} · {GROUPS[s.grp].grades}</div>
             <b>{s.name}</b>
             <div className="chips" style={{ justifyContent: "center" }}>{s.sample && <span className="chip m">Sample</span>}{s.visitor && <span className="chip visit">Visitor</span>}</div>
-            <Qr className="bq" text={s.badge} /><code>{s.badge}</code>
+            <BadgeQr className="bq" badge={s.badge} /><code>{s.badge}</code>
             {s.note && <p className="note">⚠ {s.note}</p>}
             <div className="acts">
               {arm === s.id
@@ -167,7 +167,7 @@ function ShareBox({ s, onClose, onSave, onEdit }: { s: Student; onClose: () => v
     <section className={`panel share g-${s.grp}`}>
       <div className="panel-head"><h2>Send {first}'s badge to a parent</h2><button className="btn ghost sm" onClick={onClose}>Close</button></div>
       <div className="share-grid">
-        <Qr className="bq" text={s.badge} />
+        <BadgeQr className="bq" badge={s.badge} />
         <div className="stack" style={{ gap: 10, minWidth: 0, flex: 1 }}>
           <div className="tbl-tools" style={{ marginBottom: 0 }}>
             <input className="input" type="tel" autoComplete="off" maxLength={20} aria-label="Parent's cell phone" placeholder="Parent's cell phone" value={phone} onChange={e => { setPhone(e.target.value); setPhoneMsg(""); }} />
@@ -196,8 +196,14 @@ function ShareBox({ s, onClose, onSave, onEdit }: { s: Student; onClose: () => v
 function EditBox({ s, onClose, onDone }: { s: Student; onClose: () => void; onDone: (msg: string) => void }) {
   const t = useTeacher();
   const [f, setF] = useState({ name: s.name, grp: s.grp, note: s.note, phone: s.parent_phone || "", email: s.parent_email || "" });
-  const [err, setErr] = useState(""), [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(""), [busy, setBusy] = useState(false), [armNew, setArmNew] = useState(false);
   const set = (p: Partial<typeof f>) => { setF({ ...f, ...p }); setErr(""); };
+
+  async function replaceBadge() {
+    setBusy(true);
+    try { const b = await t.actions.replaceBadge(s.id); onDone(`${s.name} now has badge ${b}. Print the new badge and send the parent the new link.`); }
+    catch (e: any) { setErr(e.message); setBusy(false); }
+  }
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -223,6 +229,13 @@ function EditBox({ s, onClose, onDone }: { s: Student; onClose: () => void; onDo
       <p className="muted small">The badge code stays the same, so printed badges and links parents already have keep working. Only teachers see the note, phone and email.</p>
       {err && <p className="err">{err}</p>}
       <div className="chips"><button className="btn" disabled={busy}>{busy ? "Saving…" : "Save changes"}</button><button type="button" className="btn ghost" onClick={onClose}>Cancel</button></div>
+      <div className="stack" style={{ gap: 8, marginTop: 16 }}>
+        <h3>Lost badge?</h3>
+        <p className="muted small">Make a new badge code ({s.badge} now). The old badge, the parent link and any phone that opened the lesson with it stop working. {firstName(s.name)} picks their name again at the next check-in.</p>
+        {armNew
+          ? <div className="chips"><button type="button" className="btn danger sm" disabled={busy} onClick={replaceBadge}>Yes, make a new badge</button><button type="button" className="btn ghost sm" onClick={() => setArmNew(false)}>Keep this one</button></div>
+          : <div className="chips"><button type="button" className="btn ghost sm" onClick={() => setArmNew(true)}>Make a new badge</button></div>}
+      </div>
     </form>
   );
 }
