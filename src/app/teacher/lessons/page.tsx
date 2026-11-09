@@ -168,7 +168,7 @@ function SessionView({ l, onEdit }: { l: Lesson; onEdit: () => void }) {
       </section>
       {n > 0 && <section className="panel stack" style={{ gap: 12 }}><h2>Key Scriptures <span className="n">(Reading · 11 min)</span></h2>{l.scriptures.map((x, i) => <div key={i} className="scripture"><b>{x.ref}</b>{x.text && <p>{x.text}</p>}</div>)}</section>}
       {l.outline.length > 0 && <section className="panel stack teacher-only" style={{ gap: 10 }}><h2>Teaching outline <span className="n">(Teaching · 20 min)</span></h2>{l.outline.map((x, i) => <div key={i} className="qa"><b>{i + 1}. {x.heading}</b><p>{x.body}</p></div>)}</section>}
-      {l.review.length > 0 && <section className="panel stack" style={{ gap: 10 }}><h2>Review questions and model answers <span className="n">(Responding · 12 min in groups)</span></h2>{l.review.map((x, i) => <div key={i} className="qa"><b>{i + 1}. {x.q}</b>{x.a && <p>{x.a}</p>}</div>)}<p className="muted small">Students see the questions only.</p></section>}
+      {l.review.length > 0 && <section className="panel stack" style={{ gap: 10 }}><h2>Review questions and model answers <span className="n">(Responding · 12 min in groups)</span></h2>{l.review.map((x, i) => <div key={i} className="qa"><b>{i + 1}. {x.q}</b>{x.a && <p>{x.a}</p>}</div>)}<p className="muted small">Students see the questions only, and each model answer after you review their work.</p></section>}
       {l.discussion.length > 0 && <section className="panel stack" style={{ gap: 8 }}><h2>For discussion <span className="n">(Responding · 8 min together)</span></h2><ol className="sess-list">{l.discussion.map((x, i) => <li key={i}>{x}</li>)}</ol></section>}
       {l.stuck.length > 0 && <section className="panel stack teacher-only" style={{ gap: 8 }}><h2>Where students get stuck</h2><ul className="sess-list">{l.stuck.map((x, i) => <li key={i}>{x}</li>)}</ul></section>}
       {l.verse_ref && <section className="panel stack" style={{ gap: 8 }}><h2>Memory verse <span className="n">(With prayer · 5 min)</span></h2><blockquote className="verse">{l.verse_text}<br /><strong>{l.verse_ref}</strong></blockquote></section>}
@@ -228,7 +228,7 @@ function Review({ l, p }: { l: Lesson; p: Progress }) {
       ))}
       {p.submitted_at && (
         <>
-          <div className="field"><label htmlFor={`cm-${p.student_id}`}>Comment for the student (they see this once you mark it reviewed)</label><textarea className="input" id={`cm-${p.student_id}`} rows={2} value={comment} onChange={e => setComment(e.target.value)} /></div>
+          <div className="field"><label htmlFor={`cm-${p.student_id}`}>Comment for the student (once you mark it reviewed, they see this and the model answers)</label><textarea className="input" id={`cm-${p.student_id}`} rows={2} value={comment} onChange={e => setComment(e.target.value)} /></div>
           <div className="chips" style={{ alignItems: "center" }}>
             <button className="btn sm" disabled={busy} onClick={() => run({ reviewed: true, comment }, "Marked reviewed.")}>{p.reviewed_at ? "Update comment" : "Mark reviewed"}</button>
             <button className="btn ghost sm" disabled={busy} onClick={() => run({ reopen: true }, "Reopened. The student can edit and submit again.")}>Reopen for edits</button>

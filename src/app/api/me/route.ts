@@ -6,7 +6,9 @@ export async function GET(req: Request) {
   if (!s) return fail("We couldn't find you. Check in again.", 401);
   const L = await currentLesson();
   const prog = L ? (await admin().from("progress").select("*").eq("student_id", s.id).eq("date", L.date).maybeSingle()).data : null;
-  return json({ student: publicStudent(s), lesson: L ? lessonFor(L) : null, progress: prog, ...(await journey(s.id)) });
+  // Model answers stay hidden until a teacher has reviewed this student's answers.
+  const modelAnswers = L && prog?.reviewed_at ? (L.review || []).map(r => r.a) : null;
+  return json({ student: publicStudent(s), lesson: L ? lessonFor(L) : null, progress: prog, modelAnswers, ...(await journey(s.id)) });
 }
 
 export async function POST(req: Request) {

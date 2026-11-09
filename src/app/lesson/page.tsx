@@ -9,7 +9,7 @@ import { answerStatus, firstName, sessionLabel, shuffle, verseChunks, type Group
 import type { StudentLesson } from "@/lib/server";
 
 type Me = {
-  student: { id: string; name: string; grp: Group }; lesson: StudentLesson | null; progress: Progress | null;
+  student: { id: string; name: string; grp: Group }; lesson: StudentLesson | null; progress: Progress | null; modelAnswers: string[] | null;
   streak: number; badges: { name: string; desc: string; on: boolean }[];
 };
 type Mode = "menu" | "verse" | "notes" | "answers";
@@ -78,7 +78,7 @@ function Lesson() {
           </>
         )}
         {me && L && g && mode === "verse" && <VerseGame text={L.verse_text} reference={L.verse_ref} grp={g} name={me.student.name} toMenu={toMenu} onDone={() => save({ verseDone: true })} />}
-        {me && L && mode === "answers" && <Answers questions={L.review} progress={p ?? null} toMenu={toMenu} save={save} />}
+        {me && L && mode === "answers" && <Answers questions={L.review} progress={p ?? null} modelAnswers={me.modelAnswers} toMenu={toMenu} save={save} />}
         {me && L && mode === "notes" && <Notes progress={p ?? null} toMenu={toMenu} onSave={reflection => save({ reflection })} />}
         {err && me && <p className="err">{err}</p>}
       </div></div>
@@ -134,7 +134,7 @@ function VerseGame({ text, reference, grp, name, toMenu, onDone }: { text: strin
   );
 }
 
-function Answers({ questions, progress, toMenu, save }: { questions: string[]; progress: Progress | null; toMenu: React.ReactNode; save: (f: object) => Promise<boolean> }) {
+function Answers({ questions, progress, modelAnswers, toMenu, save }: { questions: string[]; progress: Progress | null; modelAnswers: string[] | null; toMenu: React.ReactNode; save: (f: object) => Promise<boolean> }) {
   const [a, setA] = useState<string[]>(() => questions.map((_, i) => progress?.answers?.[i]?.a || ""));
   const [state, setState] = useState<"" | "saving" | "saved">(""), [arm, setArm] = useState(false), [busy, setBusy] = useState(false);
   const locked = !!progress?.submitted_at, filled = a.filter(x => x.trim()).length;
@@ -156,7 +156,7 @@ function Answers({ questions, progress, toMenu, save }: { questions: string[]; p
     <>
       {toMenu}
       <div><p className="eyebrow">Workbook questions</p><h1 style={{ fontSize: "1.6rem" }}>{locked ? "Your answers" : "Answer in your own words"}</h1></div>
-      {progress?.reviewed_at ? <div className="panel stack" style={{ gap: 6 }}><b>Reviewed by your teacher ✓</b>{progress.teacher_comment && <p>{progress.teacher_comment}</p>}</div>
+      {progress?.reviewed_at ? <div className="panel stack" style={{ gap: 6 }}><b>Reviewed by your teacher ✓</b>{progress.teacher_comment && <p>{progress.teacher_comment}</p>}{modelAnswers?.some(x => x.trim()) && <p className="muted small">Compare your answers with the answers below each question.</p>}</div>
         : locked ? <p className="out" style={{ fontSize: "1rem" }}>Submitted ✓ Your teacher will look at them soon.</p>
         : <p className="muted small">Your answers save as you type. When you're happy with them, tap Submit at the bottom.</p>}
       {questions.map((q, i) => (
@@ -164,6 +164,7 @@ function Answers({ questions, progress, toMenu, save }: { questions: string[]; p
           <label htmlFor={`ans${i}`} style={{ fontSize: ".95rem", color: "var(--ink)" }}>{i + 1}. {q}</label>
           {locked ? <p className="answer">{a[i] || <span className="muted">No answer</span>}</p>
             : <textarea className="input" id={`ans${i}`} rows={3} value={a[i]} onChange={e => { const n = [...a]; n[i] = e.target.value; setA(n); setState("saving"); }} />}
+          {modelAnswers?.[i]?.trim() && <p className="small"><span className="eyebrow">Answer</span> {modelAnswers[i]}</p>}
         </div>
       ))}
       {!locked && (
