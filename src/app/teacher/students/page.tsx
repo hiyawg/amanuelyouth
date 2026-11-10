@@ -61,7 +61,7 @@ export default function Students() {
         {t.students.length ? t.students.map(s => (
           <article key={s.id} className={`badge g-${s.grp}`}>
             <div className="band">{GROUPS[s.grp].label} · {GROUPS[s.grp].grades}</div>
-            <b>{s.name}</b>
+            <Link className="nm-link" href={`/teacher/students/${s.id}`}><b>{s.name}</b></Link>
             <div className="chips" style={{ justifyContent: "center" }}>{s.sample && <span className="chip m">Sample</span>}{s.visitor && <span className="chip visit">Visitor</span>}</div>
             <BadgeQr className="bq" badge={s.badge} /><code>{s.badge}</code>
             {s.note && <p className="note">⚠ {s.note}</p>}
@@ -129,7 +129,7 @@ function StudentTable({ arm, setArm, run, onShare, onEdit, onSave }: {
           <tbody>
             {rows.length ? rows.map(({ s, visits, streak, last, added }) => (
               <tr key={s.id} className={`g-${s.grp}`}>
-                <td><b>{s.name}</b>{s.sample && <> <span className="chip m">Sample</span></>}{s.visitor && <> <span className="chip visit">Visitor</span></>}{t.present.has(s.id) && <> <span className="chip">Here today</span></>}</td>
+                <td><Link className="nm-link" href={`/teacher/students/${s.id}`}><b>{s.name}</b></Link>{s.sample && <> <span className="chip m">Sample</span></>}{s.visitor && <> <span className="chip visit">Visitor</span></>}{t.present.has(s.id) && <> <span className="chip">Here today</span></>}</td>
                 <td><span className="chip">{GROUPS[s.grp].label} · {GROUPS[s.grp].grades}</span></td>
                 <td><code>{s.badge}</code></td>
                 <td className="small">{s.parent_phone || s.parent_email ? <>{s.parent_phone && <div>{s.parent_phone}</div>}{s.parent_email && <div className="muted">{s.parent_email}</div>}</> : <button className="linkbtn" onClick={() => onEdit(s)}>Add contact</button>}</td>

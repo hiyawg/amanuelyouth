@@ -40,7 +40,8 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
     return () => sub.subscription.unsubscribe();
   }, [router]);
   if (email === null) return <div className="wrap"><p className="muted" style={{ padding: 40 }}>Loading…</p></div>;
-  if (path === "/teacher/students/print") return <TeacherData>{children}</TeacherData>;
+  // The print sheet and a student's workspace fill the whole window, without the sidebar.
+  if (path === "/teacher/students/print" || /^\/teacher\/students\/[^/]+$/.test(path)) return <TeacherData>{children}</TeacherData>;
   return (
     <TeacherData>
       <div className="app">

@@ -55,7 +55,7 @@ export default function Agreements() {
                 const c = byStudent.get(s.id);
                 return (
                   <tr key={s.id} className={`g-${s.grp}`}>
-                    <td><Name name={s.name} grp={s.grp} /></td>
+                    <td><Name name={s.name} grp={s.grp} id={s.id} /></td>
                     <td><span className="chip">{GROUPS[s.grp].label}</span></td>
                     <td>{c ? <span className="chip" style={{ "--c": "var(--ok)", "--c-ink": "var(--ok)" } as React.CSSProperties}>✓ Signed {prettyDate(c.signed_on)}</span> : <span className="chip fire">Not signed</span>}</td>
                     <td>{c ? <>{c.parent_name}{c.parent_phone && <span className="muted small"> · {c.parent_phone}</span>}</> : <span className="muted">–</span>}</td>

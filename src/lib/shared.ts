@@ -41,6 +41,10 @@ export const THE_HOUR: [string, string, number][] = [
 ];
 export const sessionLabel = (l: Pick<Lesson, "session_no">) => l.session_no ? `Session ${l.session_no}` : "Session";
 export type Answer = { q: string; a: string };
+export type NoteKind = "note" | "incident" | "follow-up";
+export const NOTE_KINDS: Record<NoteKind, string> = { note: "Teacher note", incident: "Incident report", "follow-up": "Follow-up" };
+export type StudentNote = { id: string; student_id: string; kind: NoteKind; body: string; author: string; created_at: string };
+
 /** The class agreement's version. Change it when the wording changes, so parents sign the new one. */
 export const CONSENT_FORM = "2026-11";
 

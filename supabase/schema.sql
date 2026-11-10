@@ -109,6 +109,17 @@ create table if not exists consents (
   unique (student_id, form)
 );
 
+-- Teachers' notes on a student: everyday notes, incident reports and follow-ups. Only teachers see them.
+create table if not exists student_notes (
+  id uuid primary key default gen_random_uuid(),
+  student_id uuid not null references students(id) on delete cascade,
+  kind text not null default 'note' check (kind in ('note', 'incident', 'follow-up')),
+  body text not null check (char_length(body) between 1 and 4000),
+  author text not null default '',
+  created_at timestamptz not null default now()
+);
+create index if not exists student_notes_student_idx on student_notes(student_id);
+
 -- Security: only signed-in teachers can read or change data directly.
 -- Students and parents never touch the database; they go through the
 -- app's server routes, which check the rotating code, badge or student token.
@@ -119,11 +130,12 @@ alter table shepherd_lessons enable row level security;
 alter table progress enable row level security;
 alter table shepherd_schedule enable row level security;
 alter table consents enable row level security;
+alter table student_notes enable row level security;
 
 do $$
 declare t text;
 begin
-  foreach t in array array['students','sessions','checkins','shepherd_lessons','progress','shepherd_schedule','consents'] loop
+  foreach t in array array['students','sessions','checkins','shepherd_lessons','progress','shepherd_schedule','consents','student_notes'] loop
     execute format('drop policy if exists "teachers manage %1$s" on %1$I', t);
     execute format('create policy "teachers manage %1$s" on %1$I for all to authenticated using (true) with check (true)', t);
   end loop;
@@ -133,7 +145,7 @@ end $$;
 do $$
 declare t text;
 begin
-  foreach t in array array['students','sessions','checkins','shepherd_lessons','progress','shepherd_schedule','consents'] loop
+  foreach t in array array['students','sessions','checkins','shepherd_lessons','progress','shepherd_schedule','consents','student_notes'] loop
     if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = t) then
       execute format('alter publication supabase_realtime add table %I', t);
     end if;

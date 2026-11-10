@@ -4,11 +4,11 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { sb } from "@/lib/supabase-browser";
 import {
   CONSENT_FORM, addDays, dayKey, newBadge, pickupCode, randomCode, streak as streakOf,
-  type Checkin, type Consent, type Group, type Lesson, type Method, type Progress, type Session, type Student,
+  type Checkin, type Consent, type Group, type NoteKind, type StudentNote, type Lesson, type Method, type Progress, type Session, type Student,
 } from "@/lib/shared";
 
-type Data = { students: Student[]; checkins: Checkin[]; sessions: Session[]; lessons: Lesson[]; progress: Progress[]; consents: Consent[]; consentsReady: boolean };
-const EMPTY: Data = { students: [], checkins: [], sessions: [], lessons: [], progress: [], consents: [], consentsReady: true };
+type Data = { students: Student[]; checkins: Checkin[]; sessions: Session[]; lessons: Lesson[]; progress: Progress[]; consents: Consent[]; consentsReady: boolean; notes: StudentNote[]; notesReady: boolean };
+const EMPTY: Data = { students: [], checkins: [], sessions: [], lessons: [], progress: [], consents: [], consentsReady: true, notes: [], notesReady: true };
 
 function useTeacherDataValue() {
   const [d, setD] = useState<Data>(EMPTY);
@@ -18,19 +18,20 @@ function useTeacherDataValue() {
 
   const load = useCallback(async () => {
     const db = sb(), since = addDays(dayKey(), -180);
-    const [s, c, se, l, p, cs] = await Promise.all([
+    const [s, c, se, l, p, cs, n] = await Promise.all([
       db.from("students").select("*").order("name"),
       db.from("checkins").select("*").gte("date", since).order("at", { ascending: false }).limit(5000),
       db.from("sessions").select("*").order("date", { ascending: false }).limit(200),
       db.from("shepherd_lessons").select("*").order("date"),
       db.from("progress").select("*").gte("date", since).limit(5000),
       db.from("consents").select("*").eq("form", CONSENT_FORM),
+      db.from("student_notes").select("*").order("created_at", { ascending: false }).limit(5000),
     ]);
     const e = s.error || c.error || se.error || l.error || p.error;
     if (e) { setError(e.message); return; }
     setError("");
     // Agreements need the consents table from schema.sql. Until it exists, everything else still works.
-    setD({ students: s.data as Student[], checkins: c.data as Checkin[], sessions: se.data as Session[], lessons: l.data as Lesson[], progress: p.data as Progress[], consents: (cs.data || []) as Consent[], consentsReady: !cs.error });
+    setD({ students: s.data as Student[], checkins: c.data as Checkin[], sessions: se.data as Session[], lessons: l.data as Lesson[], progress: p.data as Progress[], consents: (cs.data || []) as Consent[], consentsReady: !cs.error, notes: (n.data || []) as StudentNote[], notesReady: !n.error });
     setLoaded(true);
   }, []);
 
@@ -105,6 +106,15 @@ function useTeacherDataValue() {
       const badge = newBadge(), r = await sb().from("students").update({ badge }).eq("id", id);
       if (r.error) throw new Error(r.error.message); reload();
       return badge;
+    },
+    async addNote(studentId: string, kind: NoteKind, body: string) {
+      const { data: u } = await sb().auth.getUser();
+      const r = await sb().from("student_notes").insert({ student_id: studentId, kind, body: body.slice(0, 4000), author: u.user?.email || "" });
+      if (r.error) throw new Error(r.error.message); reload();
+    },
+    async deleteNote(id: string) {
+      const r = await sb().from("student_notes").delete().eq("id", id);
+      if (r.error) throw new Error(r.error.message); reload();
     },
     async removeStudents(ids: string[]) {
       const r = await sb().from("students").delete().in("id", ids);

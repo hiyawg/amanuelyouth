@@ -127,7 +127,7 @@ export default function Today() {
                   const st = t.streak(s!.id);
                   return (
                     <tr key={c.id} className={`g-${s!.grp}`}>
-                      <td><Name name={s!.name} grp={s!.grp}>{(s!.visitor || s!.note) && <span className="chips">{s!.visitor && <span className="chip visit">First visit</span>}{s!.note && <span className="chip" style={{ "--c": "var(--bad)", "--c-ink": "var(--bad)" } as React.CSSProperties} title={s!.note}>⚠ Note</span>}</span>}</Name></td>
+                      <td><Name name={s!.name} grp={s!.grp} id={s!.id}>{(s!.visitor || s!.note) && <span className="chips">{s!.visitor && <span className="chip visit">First visit</span>}{s!.note && <span className="chip" style={{ "--c": "var(--bad)", "--c-ink": "var(--bad)" } as React.CSSProperties} title={s!.note}>⚠ Note</span>}</span>}</Name></td>
                       <td><span className="chip">{GROUPS[s!.grp].label}</span></td>
                       <td className="num">{timeOf(c.at)}</td>
                       <td>{METHODS[c.method]}</td>
@@ -164,7 +164,7 @@ export default function Today() {
                 <tbody>
                   {absent.map(s => (
                     <tr key={s.id} className={`g-${s.grp}`}>
-                      <td><Name name={s.name} grp={s.grp} /></td>
+                      <td><Name name={s.name} grp={s.grp} id={s.id} /></td>
                       <td><span className="chip">{GROUPS[s.grp].label}</span></td>
                       <td className="num">{lastSeen.get(s.id) ? prettyDate(lastSeen.get(s.id)!) : "–"}</td>
                       <td className="acts"><button className="btn ghost sm" onClick={() => run(() => t.actions.checkIn(s, "teacher"))}>Mark present</button></td>
@@ -185,7 +185,7 @@ export default function Today() {
                 <tbody>
                   {t.followUps.map(s => (
                     <tr key={s.id} className={`g-${s.grp}`}>
-                      <td><Name name={s.name} grp={s.grp} /></td>
+                      <td><Name name={s.name} grp={s.grp} id={s.id} /></td>
                       <td><span className="chip">{GROUPS[s.grp].label}</span></td>
                       <td className="num">{lastSeen.get(s.id) ? prettyDate(lastSeen.get(s.id)!) : "Not in 180 days"}</td>
                     </tr>

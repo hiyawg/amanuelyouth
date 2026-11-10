@@ -1,6 +1,7 @@
 "use client";
 // Shared UI pieces: logo, QR code, avatar, celebration overlay.
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import QRCode from "qrcode";
 import { GROUPS, badgeLink, initials, type Group } from "@/lib/shared";
 
@@ -34,9 +35,9 @@ export function Avatar({ name, grp, size }: { name: string; grp: Group; size?: n
   return <span className={`av g-${grp}`} style={size ? { width: size, height: size, fontSize: size / 2.6 } : undefined}>{initials(name)}</span>;
 }
 
-/** A student's avatar and name, for table rows. */
-export function Name({ name, grp, children }: { name: string; grp: Group; children?: React.ReactNode }) {
-  return <div className="nm"><Avatar name={name} grp={grp} size={32} /><div><b>{name}</b>{children}</div></div>;
+/** A student's avatar and name, for table rows. With an id, the name opens the student's workspace. */
+export function Name({ name, grp, id, children }: { name: string; grp: Group; id?: string; children?: React.ReactNode }) {
+  return <div className="nm"><Avatar name={name} grp={grp} size={32} /><div>{id ? <Link className="nm-link" href={`/teacher/students/${id}`}><b>{name}</b></Link> : <b>{name}</b>}{children}</div></div>;
 }
 
 export type Celebration = { name: string; grp: Group; already: boolean; streak: number; pickup?: string | null };
