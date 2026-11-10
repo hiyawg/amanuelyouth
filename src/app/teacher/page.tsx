@@ -2,8 +2,24 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useTeacher } from "@/components/teacher-data";
+import { Avatar } from "@/components/ui";
 import { saveFile } from "@/lib/browser";
-import { GROUPS, GROUP_KEYS, METHODS, prettyDate, timeOf } from "@/lib/shared";
+import { GROUPS, GROUP_KEYS, METHODS, answerStatus, prettyDate, timeOf, type Group, type Method } from "@/lib/shared";
+
+/** A progress ring for the headline tile. */
+function Ring({ value }: { value: number }) {
+  const r = 26, c = 2 * Math.PI * r;
+  return (
+    <svg className="ring" viewBox="0 0 64 64" aria-hidden="true">
+      <circle cx="32" cy="32" r={r} className="ring-track" />
+      <circle cx="32" cy="32" r={r} className="ring-fill" strokeDasharray={c} strokeDashoffset={c * (1 - value / 100)} />
+    </svg>
+  );
+}
+
+const Name = ({ name, grp, children }: { name: string; grp: Group; children?: React.ReactNode }) => (
+  <div className="nm"><Avatar name={name} grp={grp} size={32} /><div><b>{name}</b>{children}</div></div>
+);
 
 export default function Today() {
   const t = useTeacher();
@@ -17,6 +33,10 @@ export default function Today() {
   // checkins arrive newest first, so the first earlier-than-today date per student is their last visit
   for (const c of t.checkins) if (c.date < t.today && !lastSeen.has(c.student_id)) lastSeen.set(c.student_id, c.date);
   const medical = t.students.filter(s => s.note && t.present.has(s.id) && !t.present.get(s.id)!.out_at);
+  const toReview = L ? t.progress.filter(p => p.date === L.date && answerStatus(p) === "submitted").length : 0;
+  const byMethod = (Object.keys(METHODS) as Method[]).map(m => [m, t.todays.filter(c => c.method === m).length] as const).filter(([, n]) => n);
+  const stillHere = t.todays.filter(c => !c.out_at).length;
+  const hour = new Date().getHours(), greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
   const run = (f: () => Promise<unknown>) => f().catch(e => setMsg(e.message));
   function chips(sid: string) {
@@ -35,24 +55,61 @@ export default function Today() {
 
   return (
     <>
-      <section className="view-head">
+      <header className="ph">
         <div>
           <p className="eyebrow">{prettyDate(t.today, true)}</p>
-          <h1>Today's class</h1>
-          <p className="theme">
-            {L ? <>This week: <strong>{L.session_no ? `Session ${L.session_no}: ` : ""}{L.title}</strong> · {L.verse_ref}. </> : <>No lesson yet. <Link href="/teacher/lessons">Add this week's lesson</Link>. </>}
-            {t.session ? (t.session.theme ? `Door theme: ${t.session.theme}` : "Check-in is open.") : <>Check-in hasn't started. <Link href="/teacher/door">Open the door display</Link>.</>}
-          </p>
+          <h1>{greeting}</h1>
+          <p className="ph-sub">Here's your class at a glance. It updates live as students check in.</p>
         </div>
-        <button className="btn ghost" onClick={exportCsv}>Export today as CSV</button>
-      </section>
+        <div className="ph-acts">
+          <button className="btn ghost" onClick={exportCsv}>Export CSV</button>
+          {t.session ? <Link className="btn ghost" href="/teacher/door">Door display</Link> : <Link className="btn" href="/teacher/door">Start check-in</Link>}
+        </div>
+      </header>
       {(t.error || msg) && <div className="banner">{t.error || msg}</div>}
 
-      <div className="stats">
-        <div className="stat"><b>{t.present.size}<small> / {t.students.length}</small></b><span>Here today</span><div className="bar"><i style={{ width: pct(t.present.size, t.students.length) + "%" }} /></div></div>
+      <div className="hero-grid">
+        <section className="feature">
+          <span className="eyebrow">This week's lesson</span>
+          {L ? <>
+            <h2>{L.title}</h2>
+            <p className="muted">{[L.session_no ? `Session ${L.session_no}` : "", L.unit, L.verse_ref].filter(Boolean).join(" · ")}</p>
+            {L.big_idea && <p className="feature-aim">{L.big_idea}</p>}
+            <Link className="feature-link" href="/teacher/lessons">Open the lesson →</Link>
+          </> : <>
+            <h2>No lesson yet</h2>
+            <p className="muted">Post this week's session so students can do it after they check in.</p>
+            <Link className="feature-link" href="/teacher/lessons">Add this week's lesson →</Link>
+          </>}
+        </section>
+        <section className="mini">
+          <span className="eyebrow">Check-in</span>
+          <p><span className={`pill ${t.session ? "on" : ""}`}><i />{t.session ? "Open" : "Not started"}</span></p>
+          <p className="muted small">{t.session ? (t.session.theme || "Students scan the door code, a badge or tap the kiosk.") : "Open the door display to start today's class."}</p>
+          {byMethod.length > 0 && <div className="chips">{byMethod.map(([m, n]) => <span key={m} className="chip m">{METHODS[m]} · {n}</span>)}</div>}
+        </section>
+        <section className="mini">
+          <span className="eyebrow">Workbook answers</span>
+          <p className="mini-num">{toReview}</p>
+          <p className="muted small">{toReview === 1 ? "answer set waits" : "answer sets wait"} for your review{L ? "" : " once a lesson is posted"}.</p>
+          {toReview > 0 && <Link className="feature-link" href="/teacher/lessons">Review now →</Link>}
+        </section>
+      </div>
+
+      <div className="kpis">
+        <div className="kpi lead">
+          <div className="kpi-ring"><Ring value={pct(t.present.size, t.students.length)} /><span>{pct(t.present.size, t.students.length)}%</span></div>
+          <div><span className="kpi-label">Here today</span><b>{t.present.size}<small> / {t.students.length}</small></b><span className="kpi-sub">{stillHere} still in class</span></div>
+        </div>
         {GROUP_KEYS.map(k => {
           const all = t.students.filter(s => s.grp === k), n = all.filter(s => t.present.has(s.id)).length;
-          return <div key={k} className={`stat g-${k}`}><b>{n}<small> / {all.length}</small></b><span>{GROUPS[k].label} · {GROUPS[k].grades}</span><div className="bar"><i style={{ width: pct(n, all.length) + "%" }} /></div></div>;
+          return (
+            <div key={k} className={`kpi g-${k}`}>
+              <span className="kpi-label"><i className="dot" />{GROUPS[k].label}<em>{GROUPS[k].grades}</em></span>
+              <b>{n}<small> / {all.length}</small></b>
+              <div className="bar"><i style={{ width: pct(n, all.length) + "%" }} /></div>
+            </div>
+          );
         })}
       </div>
 
@@ -64,7 +121,7 @@ export default function Today() {
       )}
 
       <section className="panel" style={{ marginBottom: 16 }}>
-        <h2>Here today {here.length > 0 && <span className="n">({here.length})</span>}</h2>
+        <div className="panel-head"><h2>Here today {here.length > 0 && <span className="count">{here.length}</span>}</h2></div>
         {here.length ? (
           <div className="tbl-wrap">
             <table className="tbl">
@@ -74,7 +131,7 @@ export default function Today() {
                   const st = t.streak(s!.id);
                   return (
                     <tr key={c.id} className={`g-${s!.grp}`}>
-                      <td><b>{s!.name}</b>{s!.visitor && <> <span className="chip visit">First visit</span></>}{s!.note && <> <span className="chip" style={{ "--c": "var(--bad)", "--c-ink": "var(--bad)" } as React.CSSProperties} title={s!.note}>⚠ Note</span></>}</td>
+                      <td><Name name={s!.name} grp={s!.grp}>{(s!.visitor || s!.note) && <span className="chips">{s!.visitor && <span className="chip visit">First visit</span>}{s!.note && <span className="chip" style={{ "--c": "var(--bad)", "--c-ink": "var(--bad)" } as React.CSSProperties} title={s!.note}>⚠ Note</span>}</span>}</Name></td>
                       <td><span className="chip">{GROUPS[s!.grp].label}</span></td>
                       <td className="num">{timeOf(c.at)}</td>
                       <td>{METHODS[c.method]}</td>
@@ -103,7 +160,7 @@ export default function Today() {
 
       <div className="cols">
         <section className="panel">
-          <div className="panel-head"><h2>Not here yet {absent.length > 0 && <span className="n">({absent.length})</span>}</h2>{absent.length > 0 && <button className="btn ghost sm" onClick={() => run(async () => { for (const s of absent) await t.actions.checkIn(s, "teacher"); })}>Mark everyone present</button>}</div>
+          <div className="panel-head"><h2>Not here yet {absent.length > 0 && <span className="count">{absent.length}</span>}</h2>{absent.length > 0 && <button className="btn ghost sm" onClick={() => run(async () => { for (const s of absent) await t.actions.checkIn(s, "teacher"); })}>Mark everyone present</button>}</div>
           {absent.length ? (
             <div className="tbl-wrap">
               <table className="tbl">
@@ -111,7 +168,7 @@ export default function Today() {
                 <tbody>
                   {absent.map(s => (
                     <tr key={s.id} className={`g-${s.grp}`}>
-                      <td><b>{s.name}</b></td>
+                      <td><Name name={s.name} grp={s.grp} /></td>
                       <td><span className="chip">{GROUPS[s.grp].label}</span></td>
                       <td className="num">{lastSeen.get(s.id) ? prettyDate(lastSeen.get(s.id)!) : "–"}</td>
                       <td className="acts"><button className="btn ghost sm" onClick={() => run(() => t.actions.checkIn(s, "teacher"))}>Mark present</button></td>
@@ -124,8 +181,7 @@ export default function Today() {
             : <p className="empty">No students yet. Add them under <Link href="/teacher/students">Students &amp; badges</Link>.</p>}
         </section>
         <section className="panel">
-          <h2>Check in on these kids</h2>
-          <p className="muted small">Missed the last 3 classes. A call or card goes a long way.</p>
+          <div className="panel-head"><div><h2>Check in on these kids {t.followUps.length > 0 && <span className="count warn">{t.followUps.length}</span>}</h2><p className="muted small">Missed the last 3 classes. A call or card goes a long way.</p></div></div>
           {t.followUps.length ? (
             <div className="tbl-wrap">
               <table className="tbl">
@@ -133,7 +189,7 @@ export default function Today() {
                 <tbody>
                   {t.followUps.map(s => (
                     <tr key={s.id} className={`g-${s.grp}`}>
-                      <td><b>{s.name}</b></td>
+                      <td><Name name={s.name} grp={s.grp} /></td>
                       <td><span className="chip">{GROUPS[s.grp].label}</span></td>
                       <td className="num">{lastSeen.get(s.id) ? prettyDate(lastSeen.get(s.id)!) : "Not in 180 days"}</td>
                     </tr>
