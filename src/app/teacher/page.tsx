@@ -133,7 +133,7 @@ export default function Today() {
                       <td>{METHODS[c.method]}</td>
                       <td className="num">{st > 1 ? <span className="chip fire">🔥 {st}</span> : "–"}</td>
                       <td><div className="chips">{chips(s!.id)}</div></td>
-                      <td className="acts" style={{ justifyContent: "flex-start" }}>
+                      <td className="acts" style={{ textAlign: "left" }}>
                         {c.out_at ? <span className="out">Picked up {timeOf(c.out_at)}</span>
                           : c.pickup ? (coId === c.id
                             ? <form className="co" onSubmit={e => { e.preventDefault(); release(c.id, c.pickup); }}>
