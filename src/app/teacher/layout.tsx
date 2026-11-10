@@ -16,13 +16,14 @@ const ICONS: Record<string, React.ReactNode> = {
   schedule: <><rect x="3" y="4.5" width="18" height="16.5" rx="2.5" /><path d="M3 9.5h18M8 2.5v4M16 2.5v4" /><path d="M7.5 13.5h3M13.5 13.5h3M7.5 17h3" /></>,
   lessons: <><path d="M12 6.5C10.3 5 7.8 4.3 4 4.5v14c3.8-.2 6.3.5 8 2 1.7-1.5 4.2-2.2 8-2v-14c-3.8-.2-6.3.5-8 2Z" /><path d="M12 6.5v14" /></>,
   students: <><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20c.7-3.6 3.3-5.5 6.5-5.5s5.8 1.9 6.5 5.5" /><path d="M16 4.7a3.5 3.5 0 0 1 0 6.6M18 14.8c1.9.8 3.1 2.5 3.5 5.2" /></>,
+  agreements: <><path d="M14 2.5H7a2 2 0 0 0-2 2v15a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7.5Z" /><path d="M14 2.5v5h5" /><path d="m9 14.5 2 2 4-4" /></>,
   out: <><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4" /><path d="M9 16l-4-4 4-4M5 12h10" /></>,
 };
 const Icon = ({ name }: { name: string }) => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{ICONS[name]}</svg>;
 
 const TABS = [
   ["/teacher", "Today", "today"], ["/teacher/door", "Door display", "door"], ["/teacher/kiosk", "Kiosk", "kiosk"], ["/teacher/history", "History", "history"],
-  ["/teacher/schedule", "Schedule", "schedule"], ["/teacher/lessons", "Lessons", "lessons"], ["/teacher/students", "Students & badges", "students"],
+  ["/teacher/schedule", "Schedule", "schedule"], ["/teacher/lessons", "Lessons", "lessons"], ["/teacher/students", "Students & badges", "students"], ["/teacher/agreements", "Agreements", "agreements"],
 ];
 
 function Status() {

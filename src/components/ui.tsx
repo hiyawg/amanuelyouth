@@ -34,6 +34,11 @@ export function Avatar({ name, grp, size }: { name: string; grp: Group; size?: n
   return <span className={`av g-${grp}`} style={size ? { width: size, height: size, fontSize: size / 2.6 } : undefined}>{initials(name)}</span>;
 }
 
+/** A student's avatar and name, for table rows. */
+export function Name({ name, grp, children }: { name: string; grp: Group; children?: React.ReactNode }) {
+  return <div className="nm"><Avatar name={name} grp={grp} size={32} /><div><b>{name}</b>{children}</div></div>;
+}
+
 export type Celebration = { name: string; grp: Group; already: boolean; streak: number; pickup?: string | null };
 export function Celebrate({ c, onClose }: { c: Celebration | null; onClose: () => void }) {
   useEffect(() => {

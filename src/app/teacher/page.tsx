@@ -2,9 +2,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useTeacher } from "@/components/teacher-data";
-import { Avatar } from "@/components/ui";
+import { Name } from "@/components/ui";
 import { saveFile } from "@/lib/browser";
-import { GROUPS, GROUP_KEYS, METHODS, answerStatus, prettyDate, timeOf, type Group, type Method } from "@/lib/shared";
+import { GROUPS, GROUP_KEYS, METHODS, answerStatus, prettyDate, timeOf, type Method } from "@/lib/shared";
 
 /** A progress ring for the headline tile. */
 function Ring({ value }: { value: number }) {
@@ -16,10 +16,6 @@ function Ring({ value }: { value: number }) {
     </svg>
   );
 }
-
-const Name = ({ name, grp, children }: { name: string; grp: Group; children?: React.ReactNode }) => (
-  <div className="nm"><Avatar name={name} grp={grp} size={32} /><div><b>{name}</b>{children}</div></div>
-);
 
 export default function Today() {
   const t = useTeacher();

@@ -95,6 +95,20 @@ alter table progress add column if not exists teacher_comment text not null defa
 alter table students add column if not exists parent_phone text not null default '';
 alter table students add column if not exists parent_email text not null default '';
 
+-- Class agreements parents sign from their badge link: one per student per version of the form.
+create table if not exists consents (
+  id uuid primary key default gen_random_uuid(),
+  student_id uuid not null references students(id) on delete cascade,
+  form text not null,
+  student_name text not null check (char_length(student_name) between 1 and 80),
+  parent_name text not null check (char_length(parent_name) between 1 and 80),
+  parent_phone text not null default '',
+  signature text not null,   -- PNG data URL of the drawn signature
+  signed_on date not null,
+  signed_at timestamptz not null default now(),
+  unique (student_id, form)
+);
+
 -- Security: only signed-in teachers can read or change data directly.
 -- Students and parents never touch the database; they go through the
 -- app's server routes, which check the rotating code, badge or student token.
@@ -104,11 +118,12 @@ alter table checkins enable row level security;
 alter table shepherd_lessons enable row level security;
 alter table progress enable row level security;
 alter table shepherd_schedule enable row level security;
+alter table consents enable row level security;
 
 do $$
 declare t text;
 begin
-  foreach t in array array['students','sessions','checkins','shepherd_lessons','progress','shepherd_schedule'] loop
+  foreach t in array array['students','sessions','checkins','shepherd_lessons','progress','shepherd_schedule','consents'] loop
     execute format('drop policy if exists "teachers manage %1$s" on %1$I', t);
     execute format('create policy "teachers manage %1$s" on %1$I for all to authenticated using (true) with check (true)', t);
   end loop;
@@ -118,7 +133,7 @@ end $$;
 do $$
 declare t text;
 begin
-  foreach t in array array['students','sessions','checkins','shepherd_lessons','progress','shepherd_schedule'] loop
+  foreach t in array array['students','sessions','checkins','shepherd_lessons','progress','shepherd_schedule','consents'] loop
     if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = t) then
       execute format('alter publication supabase_realtime add table %I', t);
     end if;

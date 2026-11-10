@@ -11,7 +11,7 @@ import { GROUPS, dayKey, firstName, prettyDate, timeOf, type Group } from "@/lib
 type Data = {
   student: { name: string; grp: Group; badge: string };
   today: { at: string; pickup: string | null; out_at: string | null } | null;
-  streak: number; token: string;
+  streak: number; token: string; consent: { signed_on: string } | null;
   lesson: { session_no: number | null; title: string; big_idea: string; verse_ref: string; verse_text: string; discussion: string } | null;
   progress: { verse_done: boolean; notes: boolean; submitted: boolean } | null;
 };
@@ -44,6 +44,9 @@ export default function ParentBadge() {
               <BadgeQr className="bq" badge={s.badge} /><code style={{ fontSize: "1rem" }}>{s.badge}</code>
             </article>
             <p className="muted small" style={{ textAlign: "center" }}>Turn your screen brightness up so the scanner can read it.</p>
+            {d.consent
+              ? <Link className="consent-card done-card" href={`/b/${s.badge}/consent`}><span>✓</span><div><b>Class agreement signed</b><small>{prettyDate(d.consent.signed_on)} · View or print your copy</small></div></Link>
+              : <Link className="consent-card" href={`/b/${s.badge}/consent`}><span>✍️</span><div><b>Please sign the class agreement</b><small>Read the class expectations and sign with your finger. It takes 2 minutes.</small></div><em>Sign</em></Link>}
             <section className="panel stack" style={{ gap: 10, alignItems: "center", textAlign: "center" }}>
               <span className="eyebrow">Today, {prettyDate(dayKey(), true)}</span>
               {!d.today ? <p className="muted">Not checked in yet today.</p>

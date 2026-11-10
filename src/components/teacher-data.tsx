@@ -3,12 +3,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { sb } from "@/lib/supabase-browser";
 import {
-  addDays, dayKey, newBadge, pickupCode, randomCode, streak as streakOf,
-  type Checkin, type Group, type Lesson, type Method, type Progress, type Session, type Student,
+  CONSENT_FORM, addDays, dayKey, newBadge, pickupCode, randomCode, streak as streakOf,
+  type Checkin, type Consent, type Group, type Lesson, type Method, type Progress, type Session, type Student,
 } from "@/lib/shared";
 
-type Data = { students: Student[]; checkins: Checkin[]; sessions: Session[]; lessons: Lesson[]; progress: Progress[] };
-const EMPTY: Data = { students: [], checkins: [], sessions: [], lessons: [], progress: [] };
+type Data = { students: Student[]; checkins: Checkin[]; sessions: Session[]; lessons: Lesson[]; progress: Progress[]; consents: Consent[]; consentsReady: boolean };
+const EMPTY: Data = { students: [], checkins: [], sessions: [], lessons: [], progress: [], consents: [], consentsReady: true };
 
 function useTeacherDataValue() {
   const [d, setD] = useState<Data>(EMPTY);
@@ -18,17 +18,19 @@ function useTeacherDataValue() {
 
   const load = useCallback(async () => {
     const db = sb(), since = addDays(dayKey(), -180);
-    const [s, c, se, l, p] = await Promise.all([
+    const [s, c, se, l, p, cs] = await Promise.all([
       db.from("students").select("*").order("name"),
       db.from("checkins").select("*").gte("date", since).order("at", { ascending: false }).limit(5000),
       db.from("sessions").select("*").order("date", { ascending: false }).limit(200),
       db.from("shepherd_lessons").select("*").order("date"),
       db.from("progress").select("*").gte("date", since).limit(5000),
+      db.from("consents").select("*").eq("form", CONSENT_FORM),
     ]);
     const e = s.error || c.error || se.error || l.error || p.error;
     if (e) { setError(e.message); return; }
     setError("");
-    setD({ students: s.data as Student[], checkins: c.data as Checkin[], sessions: se.data as Session[], lessons: l.data as Lesson[], progress: p.data as Progress[] });
+    // Agreements need the consents table from schema.sql. Until it exists, everything else still works.
+    setD({ students: s.data as Student[], checkins: c.data as Checkin[], sessions: se.data as Session[], lessons: l.data as Lesson[], progress: p.data as Progress[], consents: (cs.data || []) as Consent[], consentsReady: !cs.error });
     setLoaded(true);
   }, []);
 

@@ -41,6 +41,15 @@ export const THE_HOUR: [string, string, number][] = [
 ];
 export const sessionLabel = (l: Pick<Lesson, "session_no">) => l.session_no ? `Session ${l.session_no}` : "Session";
 export type Answer = { q: string; a: string };
+/** The class agreement's version. Change it when the wording changes, so parents sign the new one. */
+export const CONSENT_FORM = "2026-11";
+
+/** A parent's signed class agreement. The signature is a PNG data URL drawn on their phone. */
+export type Consent = {
+  id: string; student_id: string; form: string; student_name: string; parent_name: string;
+  parent_phone: string; signature: string; signed_on: string; signed_at: string;
+};
+
 export type Progress = {
   student_id: string; date: string; verse_done: boolean; reflection: string; updated_at: string;
   /** Workbook answers, with each question's text kept alongside so later edits to the lesson don't shift them. */
