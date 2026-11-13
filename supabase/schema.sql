@@ -151,6 +151,21 @@ create or replace function is_staff() returns boolean
   language sql stable security definer set search_path = public
   as $$ select exists (select 1 from staff where user_id = auth.uid()) $$;
 
+-- Each student belongs to one teacher. A student a teacher adds is theirs; students added before this,
+-- and visitors who sign themselves in at the door, go to the first admin until an admin moves them.
+alter table students add column if not exists teacher_id uuid references auth.users(id) on delete set null default auth.uid();
+update students set teacher_id = (select id from auth.users where email = 'erpassabe@gmail.com') where teacher_id is null;
+create index if not exists students_teacher_idx on students(teacher_id);
+
+create or replace function is_admin() returns boolean
+  language sql stable security definer set search_path = public
+  as $$ select exists (select 1 from staff where user_id = auth.uid() and role = 'admin') $$;
+
+-- Admins see every student; a teacher sees their own.
+create or replace function sees_student(sid uuid) returns boolean
+  language sql stable security definer set search_path = public
+  as $$ select is_admin() or exists (select 1 from students where id = sid and teacher_id = auth.uid()) $$;
+
 -- Security: only listed teachers can read or change data directly.
 -- Students and parents never touch the database; they go through the
 -- app's server routes, which check the rotating code, badge or student token.
@@ -166,11 +181,21 @@ alter table student_notes enable row level security;
 do $$
 declare t text;
 begin
-  foreach t in array array['students','sessions','checkins','shepherd_lessons','progress','shepherd_schedule','consents','student_notes'] loop
+  -- Shared by every teacher: class days, the course and the schedule.
+  foreach t in array array['sessions','shepherd_lessons','shepherd_schedule'] loop
     execute format('drop policy if exists "teachers manage %1$s" on %1$I', t);
     execute format('create policy "teachers manage %1$s" on %1$I for all to authenticated using (is_staff()) with check (is_staff())', t);
   end loop;
+  -- A student's records follow the student.
+  foreach t in array array['checkins','progress','consents','student_notes'] loop
+    execute format('drop policy if exists "teachers manage %1$s" on %1$I', t);
+    execute format('create policy "teachers manage %1$s" on %1$I for all to authenticated using (is_staff() and sees_student(student_id)) with check (is_staff() and sees_student(student_id))', t);
+  end loop;
 end $$;
+drop policy if exists "teachers manage students" on students;
+create policy "teachers manage students" on students for all to authenticated
+  using (is_staff() and (is_admin() or teacher_id = auth.uid()))
+  with check (is_staff() and (is_admin() or teacher_id = auth.uid()));
 
 -- Live updates for the teacher screens.
 do $$

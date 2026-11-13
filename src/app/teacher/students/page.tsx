@@ -1,13 +1,17 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useTeacher } from "@/components/teacher-data";
+import { useTeacher, type StaffMember } from "@/components/teacher-data";
 import { BadgeQr } from "@/components/ui";
 import { badgePng, recall, safeName, saveFile, store } from "@/lib/browser";
-import { CHURCH_NAME, GROUPS, GROUP_KEYS, SAMPLE_STUDENTS, cleanEmail, cleanPhone, firstName, mailHref, prettyDate, smsHref, type Group, type Student } from "@/lib/shared";
+import { CHURCH_NAME, GROUPS, GROUP_KEYS, SAMPLE_STUDENTS, cleanEmail, cleanPhone, firstName, loginName, mailHref, prettyDate, smsHref, type Group, type Student } from "@/lib/shared";
 
 type View = "badges" | "table";
 type SortKey = "name" | "grp" | "visits" | "streak" | "last" | "added";
+
+/** The student's teacher, if they're still on the teacher list. */
+const teacherOf = (staff: StaffMember[], s: Student) => staff.find(x => x.id === s.teacher_id);
+const teacherLabel = (staff: StaffMember[], s: Student) => { const x = teacherOf(staff, s); return x ? x.name || loginName(x.email) : ""; };
 
 export default function Students() {
   const t = useTeacher();
@@ -83,22 +87,23 @@ function StudentTable({ arm, setArm, run, onShare, onEdit, onSave }: {
   onShare: (s: Student) => void; onEdit: (s: Student) => void; onSave: (s: Student) => void;
 }) {
   const t = useTeacher();
-  const [q, setQ] = useState(""), [grp, setGrp] = useState<Group | "">("");
+  const [q, setQ] = useState(""), [grp, setGrp] = useState<Group | "">(""), [who, setWho] = useState("");
   const [sort, setSort] = useState<{ k: SortKey; desc: boolean }>({ k: "name", desc: false });
+  const isAdmin = t.role === "admin";
 
   const rows = useMemo(() => {
     const visits = new Map<string, Set<string>>();
     for (const c of t.checkins) { if (!visits.has(c.student_id)) visits.set(c.student_id, new Set()); visits.get(c.student_id)!.add(c.date); }
     const needle = q.trim().toLowerCase();
     const list = t.students
-      .filter(s => (!grp || s.grp === grp) && (!needle || `${s.name} ${s.badge} ${s.note} ${s.parent_phone} ${s.parent_email}`.toLowerCase().includes(needle)))
+      .filter(s => (!grp || s.grp === grp) && (!who || (who === "none" ? !teacherOf(t.staff, s) : s.teacher_id === who)) && (!needle ||`${s.name} ${s.badge} ${s.note} ${s.parent_phone} ${s.parent_email}`.toLowerCase().includes(needle)))
       .map(s => {
         const days = visits.get(s.id);
         return { s, visits: days?.size ?? 0, streak: t.streak(s.id), last: days ? [...days].sort().pop()! : "", added: s.created_at.slice(0, 10) };
       });
     const val = (r: typeof list[number]) => sort.k === "name" ? r.s.name.toLowerCase() : sort.k === "grp" ? GROUP_KEYS.indexOf(r.s.grp) : r[sort.k];
     return list.sort((a, b) => { const x = val(a), y = val(b); const c = x < y ? -1 : x > y ? 1 : 0; return sort.desc ? -c : c; });
-  }, [t.students, t.checkins, t.streak, q, grp, sort]);
+  }, [t.students, t.checkins, t.streak, t.staff, q, grp, who, sort]);
 
   const th = (k: SortKey, label: string, num = false) => (
     <th className={num ? "num" : ""} aria-sort={sort.k === k ? (sort.desc ? "descending" : "ascending") : "none"}>
@@ -108,8 +113,8 @@ function StudentTable({ arm, setArm, run, onShare, onEdit, onSave }: {
 
   function exportCsv() {
     const cell = (v: string | number) => /[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v);
-    const lines = [["Name", "Group", "Grades", "Badge", "Parent phone", "Parent email", "Note", "Visitor", "Visits (180 days)", "Streak", "Last seen", "Added"],
-      ...rows.map(r => [r.s.name, GROUPS[r.s.grp].label, GROUPS[r.s.grp].grades, r.s.badge, r.s.parent_phone, r.s.parent_email, r.s.note, r.s.visitor ? "yes" : "", r.visits, r.streak, r.last, r.added])];
+    const lines = [["Name", "Group", "Grades", "Badge", "Parent phone", "Parent email", "Note", "Visitor", "Visits (180 days)", "Streak", "Last seen", "Added", ...(isAdmin ? ["Teacher"] : [])],
+      ...rows.map(r => [r.s.name, GROUPS[r.s.grp].label, GROUPS[r.s.grp].grades, r.s.badge, r.s.parent_phone, r.s.parent_email, r.s.note, r.s.visitor ? "yes" : "", r.visits, r.streak, r.last, r.added, ...(isAdmin ? [teacherLabel(t.staff, r.s)] : [])])];
     saveFile(`students-${t.today}.csv`, lines.map(l => l.map(cell).join(",")).join("\n"), "text/csv");
   }
 
@@ -120,12 +125,15 @@ function StudentTable({ arm, setArm, run, onShare, onEdit, onSave }: {
         <select className="input" aria-label="Filter by group" value={grp} onChange={e => setGrp(e.target.value as Group | "")}>
           <option value="">All groups</option>{GROUP_KEYS.map(k => <option key={k} value={k}>{GROUPS[k].label}</option>)}
         </select>
+        {isAdmin && <select className="input" aria-label="Filter by teacher" value={who} onChange={e => setWho(e.target.value)}>
+          <option value="">All teachers</option>{t.staff.map(x => <option key={x.id} value={x.id}>{x.name || loginName(x.email)}</option>)}<option value="none">No teacher</option>
+        </select>}
         <button className="btn ghost sm" onClick={exportCsv}>Download CSV</button>
       </div>
       <p className="muted small">{rows.length} of {t.students.length} students · visits count the last 180 days</p>
       <div className="tbl-wrap">
         <table className="tbl">
-          <thead><tr>{th("name", "Name")}{th("grp", "Group")}<th>Badge</th><th>Parent</th><th>Note</th>{th("visits", "Visits", true)}{th("streak", "Streak", true)}{th("last", "Last seen", true)}{th("added", "Added", true)}<th><span className="sr">Actions</span></th></tr></thead>
+          <thead><tr>{th("name", "Name")}{th("grp", "Group")}<th>Badge</th><th>Parent</th><th>Note</th>{isAdmin && <th>Teacher</th>}{th("visits", "Visits", true)}{th("streak", "Streak", true)}{th("last", "Last seen", true)}{th("added", "Added", true)}<th><span className="sr">Actions</span></th></tr></thead>
           <tbody>
             {rows.length ? rows.map(({ s, visits, streak, last, added }) => (
               <tr key={s.id} className={`g-${s.grp}`}>
@@ -134,6 +142,7 @@ function StudentTable({ arm, setArm, run, onShare, onEdit, onSave }: {
                 <td><code>{s.badge}</code></td>
                 <td className="small">{s.parent_phone || s.parent_email ? <>{s.parent_phone && <div>{s.parent_phone}</div>}{s.parent_email && <div className="muted">{s.parent_email}</div>}</> : <button className="linkbtn" onClick={() => onEdit(s)}>Add contact</button>}</td>
                 <td className="note">{s.note && <>⚠ {s.note}</>}</td>
+                {isAdmin && <td className="small">{teacherOf(t.staff, s) ? teacherLabel(t.staff, s) : <button className="linkbtn" onClick={() => onEdit(s)}>Assign</button>}</td>}
                 <td className="num">{visits}</td>
                 <td className="num">{streak ? <span className="chip fire">🔥 {streak}</span> : "–"}</td>
                 <td className="num">{last ? prettyDate(last) : "–"}</td>
@@ -144,7 +153,7 @@ function StudentTable({ arm, setArm, run, onShare, onEdit, onSave }: {
                     : <><button className="btn ghost sm" onClick={() => onShare(s)}>Send</button><button className="btn ghost sm" onClick={() => onEdit(s)}>Edit</button><button className="btn ghost sm" onClick={() => onSave(s)}>Image</button><button className="btn ghost sm" onClick={() => setArm(s.id)}>Remove</button></>}
                 </td>
               </tr>
-            )) : <tr><td colSpan={10} className="empty">No students match.</td></tr>}
+            )) : <tr><td colSpan={isAdmin ? 11 : 10} className="empty">No students match.</td></tr>}
           </tbody>
         </table>
       </div>
@@ -195,7 +204,8 @@ function ShareBox({ s, onClose, onSave, onEdit }: { s: Student; onClose: () => v
 /** Change a student's details and their parent's contact info. */
 function EditBox({ s, onClose, onDone }: { s: Student; onClose: () => void; onDone: (msg: string) => void }) {
   const t = useTeacher();
-  const [f, setF] = useState({ name: s.name, grp: s.grp, note: s.note, phone: s.parent_phone || "", email: s.parent_email || "" });
+  const [f, setF] = useState({ name: s.name, grp: s.grp, note: s.note, phone: s.parent_phone || "", email: s.parent_email || "", teacher: s.teacher_id || "" });
+  const isAdmin = t.role === "admin";
   const [err, setErr] = useState(""), [busy, setBusy] = useState(false), [armNew, setArmNew] = useState(false);
   const set = (p: Partial<typeof f>) => { setF({ ...f, ...p }); setErr(""); };
 
@@ -211,8 +221,9 @@ function EditBox({ s, onClose, onDone }: { s: Student; onClose: () => void; onDo
     if (!name) return setErr("Add the student's name.");
     if (f.phone.trim() && !phone) return setErr("That phone number doesn't look right. Check it, or leave it blank.");
     if (f.email.trim() && !email) return setErr("That email address doesn't look right. Check it, or leave it blank.");
+    if (isAdmin && !f.teacher) return setErr("Pick the teacher this student belongs to.");
     setBusy(true);
-    try { await t.actions.updateStudent(s.id, { name, grp: f.grp, note: f.note.trim(), parent_phone: phone, parent_email: email }); onDone(`Saved ${name}.`); }
+    try { await t.actions.updateStudent(s.id, { name, grp: f.grp, note: f.note.trim(), parent_phone: phone, parent_email: email, ...(isAdmin ? { teacher_id: f.teacher } : {}) }); onDone(`Saved ${name}.`); }
     catch (e: any) { setErr(e.message); setBusy(false); }
   }
 
@@ -225,6 +236,9 @@ function EditBox({ s, onClose, onDone }: { s: Student; onClose: () => void; onDo
         <div className="field wide"><label htmlFor="e-nt">Allergy or medical note</label><input className="input" id="e-nt" maxLength={80} placeholder="Only teachers see this" value={f.note} onChange={e => set({ note: e.target.value })} /></div>
         <div className="field"><label htmlFor="e-ph">Parent's cell phone</label><input className="input" id="e-ph" type="tel" autoComplete="off" maxLength={20} value={f.phone} onChange={e => set({ phone: e.target.value })} /></div>
         <div className="field"><label htmlFor="e-em">Parent's email</label><input className="input" id="e-em" type="email" autoComplete="off" maxLength={120} value={f.email} onChange={e => set({ email: e.target.value })} /></div>
+        {isAdmin && <div className="field"><label htmlFor="e-tc">Teacher</label><select className="input" id="e-tc" value={f.teacher} onChange={e => set({ teacher: e.target.value })}>
+          {!teacherOf(t.staff, s) && <option value="">Pick a teacher</option>}{t.staff.map(x => <option key={x.id} value={x.id}>{x.name || loginName(x.email)}</option>)}
+        </select></div>}
       </div>
       <p className="muted small">The badge code stays the same, so printed badges and links parents already have keep working. Only teachers see the note, phone and email.</p>
       {err && <p className="err">{err}</p>}

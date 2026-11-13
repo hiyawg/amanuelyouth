@@ -4,14 +4,18 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { sb } from "@/lib/supabase-browser";
 import {
   CONSENT_FORM, addDays, dayKey, newBadge, pickupCode, randomCode, streak as streakOf,
-  type Checkin, type Consent, type Group, type NoteKind, type StudentNote, type Lesson, type Method, type Progress, type Session, type Student,
+  type Checkin, type Consent, type Group, type NoteKind, type StudentNote, type Lesson, type Method, type Progress, type Session, type Student, type StaffRole,
 } from "@/lib/shared";
+
+/** A teacher an admin can give students to. */
+export type StaffMember = { id: string; name: string; email: string };
 
 type Data = { students: Student[]; checkins: Checkin[]; sessions: Session[]; lessons: Lesson[]; progress: Progress[]; consents: Consent[]; consentsReady: boolean; notes: StudentNote[]; notesReady: boolean };
 const EMPTY: Data = { students: [], checkins: [], sessions: [], lessons: [], progress: [], consents: [], consentsReady: true, notes: [], notesReady: true };
 
-function useTeacherDataValue() {
+function useTeacherDataValue(role: StaffRole) {
   const [d, setD] = useState<Data>(EMPTY);
+  const [staff, setStaff] = useState<StaffMember[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState("");
   const today = dayKey();
@@ -37,6 +41,14 @@ function useTeacherDataValue() {
 
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const reload = useCallback(() => { clearTimeout(timer.current); timer.current = setTimeout(load, 250); }, [load]);
+
+  // Admins see every student and can move one to another teacher, so they need the teacher list.
+  useEffect(() => {
+    if (role !== "admin") return;
+    sb().auth.getSession().then(({ data }) => fetch("/api/staff", { headers: { Authorization: `Bearer ${data.session?.access_token || ""}` } }))
+      .then(r => r.ok ? r.json() : { teachers: [] })
+      .then((x: { teachers: StaffMember[] }) => setStaff(x.teachers.map(({ id, name, email }) => ({ id, name, email }))), () => {});
+  }, [role]);
 
   useEffect(() => {
     load();
@@ -132,13 +144,13 @@ function useTeacherDataValue() {
     },
   }), [derived, reload, today]);
 
-  return { ...d, ...derived, loaded, error, today, actions };
+  return { ...d, ...derived, loaded, error, today, actions, role, staff };
 }
 
 type Ctx = ReturnType<typeof useTeacherDataValue>;
 const C = createContext<Ctx | null>(null);
-export function TeacherData({ children }: { children: React.ReactNode }) {
-  const v = useTeacherDataValue();
+export function TeacherData({ role, children }: { role: StaffRole; children: React.ReactNode }) {
+  const v = useTeacherDataValue(role);
   return <C.Provider value={v}>{children}</C.Provider>;
 }
 export function useTeacher(): Ctx {

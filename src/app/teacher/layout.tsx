@@ -99,9 +99,9 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
   if (email === null || role === null) return <div className="wrap"><p className="muted" style={{ padding: 40 }}>Loading…</p></div>;
   if (role === "none") return <NotStaff email={email} />;
   // The print sheet and a student's workspace fill the whole window with their own bars.
-  if (path === "/teacher/students/print" || /^\/teacher\/students\/[^/]+$/.test(path)) return <TeacherData>{children}</TeacherData>;
+  if (path === "/teacher/students/print" || /^\/teacher\/students\/[^/]+$/.test(path)) return <TeacherData role={role}>{children}</TeacherData>;
   return (
-    <TeacherData>
+    <TeacherData role={role}>
       <div className="app">
         <TopBar email={email} />
         <nav className="ap-tabs noprint" aria-label="Views">

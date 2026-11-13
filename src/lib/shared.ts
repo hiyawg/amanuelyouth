@@ -6,6 +6,8 @@ export type Method = "qr" | "badge" | "kiosk" | "teacher";
 export type Student = {
   id: string; name: string; grp: Group; note: string; badge: string;
   visitor: boolean; sample: boolean; created_at: string; parent_phone: string; parent_email: string;
+  /** The teacher this student belongs to. Teachers see only their own students; admins see all. */
+  teacher_id: string | null;
 };
 /** A phone number as typed, reduced to digits for texting. 10 digits are taken as a US number. Empty if it can't be one. */
 export function cleanPhone(raw: string): string {
