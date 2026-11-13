@@ -59,6 +59,14 @@ alter table shepherd_lessons
   add column if not exists discussion jsonb not null default '[]'::jsonb,   -- ["…"]
   add column if not exists stuck jsonb not null default '[]'::jsonb;        -- ["…"], teachers only
 
+-- The teacher manual's preparation pages. All teachers only.
+alter table shepherd_lessons
+  add column if not exists book text not null default '',                   -- "Lesson 1 — … (pp. 7–19)"
+  add column if not exists notes jsonb not null default '[]'::jsonb,        -- [{ heading, body }]
+  add column if not exists terms jsonb not null default '[]'::jsonb,        -- [{ term, meaning }]
+  add column if not exists essentials jsonb not null default '[]'::jsonb,   -- ["…"], if time is short
+  add column if not exists further text not null default '';                -- Scriptures for preparation, not read aloud
+
 create table if not exists progress (
   student_id uuid not null references students(id) on delete cascade,
   date date not null,
@@ -120,7 +128,30 @@ create table if not exists student_notes (
 );
 create index if not exists student_notes_student_idx on student_notes(student_id);
 
--- Security: only signed-in teachers can read or change data directly.
+-- Who may use the teacher screens. This Supabase project can hold sign-ins for other apps too,
+-- so being signed in isn't enough: the account must be listed here. Admins add teachers from the
+-- Teachers page; the app's server does that with the service key, so teachers can't edit this list.
+create table if not exists staff (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  name text not null default '',
+  role text not null default 'teacher' check (role in ('teacher', 'admin')),
+  added_at timestamptz not null default now()
+);
+alter table staff enable row level security;
+drop policy if exists "read own staff row" on staff;
+create policy "read own staff row" on staff for select to authenticated using (user_id = auth.uid());
+
+-- The first admin, and the account already teaching.
+insert into staff (user_id, role) select id, 'admin' from auth.users where email = 'erpassabe@gmail.com'
+  on conflict (user_id) do update set role = 'admin';
+insert into staff (user_id, role) select id, 'teacher' from auth.users where email = 'serbesabe@gmail.com'
+  on conflict (user_id) do nothing;
+
+create or replace function is_staff() returns boolean
+  language sql stable security definer set search_path = public
+  as $$ select exists (select 1 from staff where user_id = auth.uid()) $$;
+
+-- Security: only listed teachers can read or change data directly.
 -- Students and parents never touch the database; they go through the
 -- app's server routes, which check the rotating code, badge or student token.
 alter table students enable row level security;
@@ -137,7 +168,7 @@ declare t text;
 begin
   foreach t in array array['students','sessions','checkins','shepherd_lessons','progress','shepherd_schedule','consents','student_notes'] loop
     execute format('drop policy if exists "teachers manage %1$s" on %1$I', t);
-    execute format('create policy "teachers manage %1$s" on %1$I for all to authenticated using (true) with check (true)', t);
+    execute format('create policy "teachers manage %1$s" on %1$I for all to authenticated using (is_staff()) with check (is_staff())', t);
   end loop;
 end $$;
 

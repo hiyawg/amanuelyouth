@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { sb } from "@/lib/supabase-browser";
 import { Logo } from "@/components/ui";
-import { CHURCH_NAME } from "@/lib/shared";
+import { CHURCH_NAME, loginEmail } from "@/lib/shared";
 
 const FEATURES: [string, string, string][] = [
   ["door", "Check-in at the door", "Students scan a rotating code. You see who's here live."],
@@ -24,8 +24,8 @@ export default function Login() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault(); setBusy(true); setErr("");
-    const { error } = await sb().auth.signInWithPassword({ email: email.trim(), password });
-    if (error) { setBusy(false); setErr("That email and password don't match. Ask your ministry leader to check your teacher account."); }
+    const { error } = await sb().auth.signInWithPassword({ email: loginEmail(email), password });
+    if (error) { setBusy(false); setErr("That username or email and password don't match. Ask your admin to check your teacher account."); }
     else router.replace("/teacher");
   }
 
@@ -57,10 +57,10 @@ export default function Login() {
           </div>
 
           <div className="auth-field">
-            <label htmlFor="em">Email</label>
+            <label htmlFor="em">Username or email</label>
             <div className="auth-input">
               <Icon name="mail" />
-              <input id="em" type="email" required autoComplete="email" inputMode="email" placeholder="you@church.org" value={email} onChange={e => setEmail(e.target.value)} />
+              <input id="em" type="text" required autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="hana or you@church.org" value={email} onChange={e => setEmail(e.target.value)} />
             </div>
           </div>
           <div className="auth-field">

@@ -29,6 +29,9 @@ export type Lesson = {
   objectives: string[]; scriptures: { ref: string; text: string }[]; passage: string;
   outline: { heading: string; body: string }[]; review: { q: string; a: string }[];
   discussion: string[]; stuck: string[]; verse_ref: string; verse_text: string;
+  /** Teachers only: the book chapters behind the session, the manual's notes, key terms, what to keep if time is short, and Scriptures for preparation. */
+  book: string; notes: { heading: string; body: string }[]; terms: { term: string; meaning: string }[];
+  essentials: string[]; further: string;
 };
 /** Every session runs the same hour: Reading, Teaching, Responding. */
 export const THE_HOUR: [string, string, number][] = [
@@ -41,6 +44,14 @@ export const THE_HOUR: [string, string, number][] = [
 ];
 export const sessionLabel = (l: Pick<Lesson, "session_no">) => l.session_no ? `Session ${l.session_no}` : "Session";
 export type Answer = { q: string; a: string };
+/** Teachers who sign in with a username get a private placeholder email in this domain. */
+export const USERNAME_DOMAIN = "teachers.shepherd.local";
+/** The email to sign in with: a typed email as is, or a username turned into its placeholder email. */
+export const loginEmail = (login: string) => { const l = login.trim().toLowerCase(); return l.includes("@") ? l : `${l}@${USERNAME_DOMAIN}`; };
+/** How to show a sign-in: the username for placeholder emails, otherwise the email. */
+export const loginName = (email: string) => email.endsWith("@" + USERNAME_DOMAIN) ? email.slice(0, -USERNAME_DOMAIN.length - 1) : email;
+export type StaffRole = "teacher" | "admin";
+
 export type NoteKind = "note" | "incident" | "follow-up";
 export const NOTE_KINDS: Record<NoteKind, string> = { note: "Teacher note", incident: "Incident report", "follow-up": "Follow-up" };
 export type StudentNote = { id: string; student_id: string; kind: NoteKind; body: string; author: string; created_at: string };

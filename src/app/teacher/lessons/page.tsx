@@ -9,6 +9,7 @@ const blank = (date: string, session_no: number | null): Lesson => ({
   date, session_no, unit: "", title: "", subtitle: "", big_idea: "", objectives: ["", "", ""],
   scriptures: [{ ref: "", text: "" }], passage: "", outline: [{ heading: "", body: "" }], review: [{ q: "", a: "" }],
   discussion: [""], stuck: [""], verse_ref: "", verse_text: "",
+  book: "", notes: [{ heading: "", body: "" }], terms: [{ term: "", meaning: "" }], essentials: [""], further: "",
 });
 const clone = <T,>(o: T): T => JSON.parse(JSON.stringify(o));
 // Rows saved before the course layout may be missing the newer fields.
@@ -48,6 +49,10 @@ export default function Lessons() {
       review: d.review.filter(x => x.q.trim()),
       discussion: d.discussion.map(x => x.trim()).filter(Boolean),
       stuck: d.stuck.map(x => x.trim()).filter(Boolean),
+      book: d.book.trim(), further: d.further.trim(),
+      notes: d.notes.filter(x => x.heading.trim() || x.body.trim()),
+      terms: d.terms.filter(x => x.term.trim()),
+      essentials: d.essentials.map(x => x.trim()).filter(Boolean),
     };
     L.passage = L.scriptures.map(x => x.ref.trim()).join("; ");
     setBusy(true);
@@ -99,15 +104,31 @@ export default function Lessons() {
               <Field id="lsSub" label="Subtitle"><input className="input" id="lsSub" value={d.subtitle} placeholder="The Reason for Creation · The Creation of Man" onChange={e => set({ subtitle: e.target.value })} /></Field>
             </div>
             <Field id="lsAim" label="Aim"><textarea className="input" id="lsAim" rows={2} value={d.big_idea} onChange={e => set({ big_idea: e.target.value })} /></Field>
+            <Field id="lsBook" label="Book chapters (teachers only)"><input className="input" id="lsBook" value={d.book} placeholder="Lesson 1 — The Reason for Creation (pp. 7–19)" onChange={e => set({ book: e.target.value })} /></Field>
 
             <h3 className="sub">They should leave holding</h3>
             <Rows items={d.objectives} add="" onChange={objectives => set({ objectives })} label="objective"
               render={(x, i, up) => <input className="input" aria-label={`Objective ${i + 1}`} value={x} placeholder="That…" onChange={e => up(e.target.value)} />} />
 
+            <h3 className="sub">Notes for the teacher <span className="muted small" style={{ fontWeight: 500 }}>· teachers only, read before the session</span></h3>
+            <Rows items={d.notes} add={{ heading: "", body: "" }} onChange={notes => set({ notes })} label="note"
+              render={(x, i, up) => <><input className="input" aria-label={`Note ${i + 1} heading`} value={x.heading} placeholder="Why we need revelation" onChange={e => up({ ...x, heading: e.target.value })} />
+                <textarea className="input" aria-label={`Note ${i + 1} text`} rows={4} value={x.body} onChange={e => up({ ...x, body: e.target.value })} /></>} />
+
+            <h3 className="sub">Key terms <span className="muted small" style={{ fontWeight: 500 }}>· teachers only</span></h3>
+            <Rows items={d.terms} add={{ term: "", meaning: "" }} onChange={terms => set({ terms })} label="term"
+              render={(x, i, up) => <><input className="input" aria-label={`Term ${i + 1}`} value={x.term} placeholder="Sense knowledge" onChange={e => up({ ...x, term: e.target.value })} />
+                <input className="input" aria-label={`Term ${i + 1} meaning`} value={x.meaning} placeholder="What it means" onChange={e => up({ ...x, meaning: e.target.value })} /></>} />
+
+            <h3 className="sub">If time is short, make sure you teach <span className="muted small" style={{ fontWeight: 500 }}>· teachers only</span></h3>
+            <Rows items={d.essentials} add="" onChange={essentials => set({ essentials })} label="point"
+              render={(x, i, up) => <input className="input" aria-label={`Essential ${i + 1}`} value={x} onChange={e => up(e.target.value)} />} />
+
             <h3 className="sub">Key Scriptures</h3>
             <Rows items={d.scriptures} add={{ ref: "", text: "" }} onChange={scriptures => set({ scriptures })} label="Scripture"
               render={(x, i, up) => <><input className="input" aria-label={`Scripture ${i + 1} reference`} value={x.ref} placeholder="Revelation 4:11" onChange={e => up({ ...x, ref: e.target.value })} />
                 <textarea className="input" aria-label={`Scripture ${i + 1} text`} rows={3} value={x.text} placeholder="The verse, printed in full" onChange={e => up({ ...x, text: e.target.value })} /></>} />
+            <Field id="lsFurther" label="Further references for preparation, not read aloud (teachers only)"><input className="input" id="lsFurther" value={d.further} placeholder="Genesis 1:14–19 · Hebrews 2:5–8" onChange={e => set({ further: e.target.value })} /></Field>
 
             <h3 className="sub">Teaching outline <span className="muted small" style={{ fontWeight: 500 }}>· teachers only</span></h3>
             <Rows items={d.outline} add={{ heading: "", body: "" }} onChange={outline => set({ outline })} label="move"
@@ -157,16 +178,20 @@ function SessionView({ l, onEdit }: { l: Lesson; onEdit: () => void }) {
         </div>
         <h2 style={{ fontSize: "1.7rem" }}>{l.title}</h2>
         {l.subtitle && <p className="muted">{l.subtitle}</p>}
+        {l.book && <p className="muted small">Book: {l.book}</p>}
         {l.big_idea && <p><strong>Aim.</strong> {l.big_idea}</p>}
       </section>
       {l.review.length > 0 && <AnswersPanel l={l} />}
       {l.objectives.length > 0 && <section className="panel stack" style={{ gap: 8 }}><h2>They should leave holding</h2><ol className="sess-list">{l.objectives.map((x, i) => <li key={i}>{x}</li>)}</ol></section>}
+      {l.notes.length > 0 && <section className="panel stack teacher-only" style={{ gap: 10 }}><h2>Notes for the teacher <span className="n">(read before the session)</span></h2>{l.notes.map((x, i) => <div key={i} className="qa"><b>{x.heading}</b><p>{x.body}</p></div>)}</section>}
+      {l.terms.length > 0 && <section className="panel stack teacher-only" style={{ gap: 8 }}><h2>Key terms</h2>{l.terms.map((x, i) => <div key={i} className="qa"><b>{x.term}</b><p>{x.meaning}</p></div>)}</section>}
+      {l.essentials.length > 0 && <section className="panel stack teacher-only" style={{ gap: 8 }}><h2>If time is short, make sure you teach</h2><ol className="sess-list">{l.essentials.map((x, i) => <li key={i}>{x}</li>)}</ol></section>}
       <section className="panel stack teacher-only" style={{ gap: 8 }}>
         <h2>The hour</h2>
         <table className="hour"><tbody>{THE_HOUR.map(([m, seg, min], i) => <tr key={i}><td>{m}</td><td>{i === 1 && n ? `${n} Scriptures aloud, readers assigned in advance` : seg}</td><td>{min} min</td></tr>)}</tbody></table>
         {n > 0 && <p className="muted small">{n} passages across 11 minutes is about {(11 / n).toFixed(1)} minutes each. Read unhurried. Split the review questions across the small groups.</p>}
       </section>
-      {n > 0 && <section className="panel stack" style={{ gap: 12 }}><h2>Key Scriptures <span className="n">(Reading · 11 min)</span></h2>{l.scriptures.map((x, i) => <div key={i} className="scripture"><b>{x.ref}</b>{x.text && <p>{x.text}</p>}</div>)}</section>}
+      {n > 0 && <section className="panel stack" style={{ gap: 12 }}><h2>Key Scriptures <span className="n">(Reading · 11 min)</span></h2>{l.scriptures.map((x, i) => <div key={i} className="scripture"><b>{x.ref}</b>{x.text && <p>{x.text}</p>}</div>)}{l.further && <p className="muted small">Further references for your preparation, not read aloud: {l.further}</p>}</section>}
       {l.outline.length > 0 && <section className="panel stack teacher-only" style={{ gap: 10 }}><h2>Teaching outline <span className="n">(Teaching · 20 min)</span></h2>{l.outline.map((x, i) => <div key={i} className="qa"><b>{i + 1}. {x.heading}</b><p>{x.body}</p></div>)}</section>}
       {l.review.length > 0 && <section className="panel stack" style={{ gap: 10 }}><h2>Review questions and model answers <span className="n">(Responding · 12 min in groups)</span></h2>{l.review.map((x, i) => <div key={i} className="qa"><b>{i + 1}. {x.q}</b>{x.a && <p>{x.a}</p>}</div>)}<p className="muted small">Students see the questions only, and each model answer after you review their work.</p></section>}
       {l.discussion.length > 0 && <section className="panel stack" style={{ gap: 8 }}><h2>For discussion <span className="n">(Responding · 8 min together)</span></h2><ol className="sess-list">{l.discussion.map((x, i) => <li key={i}>{x}</li>)}</ol></section>}

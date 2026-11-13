@@ -46,6 +46,16 @@ export function readTicket(t: unknown): string | null {
   return date;
 }
 
+/** The signed-in teacher making this request (from their Supabase access token), with their role. */
+export async function staffFrom(req: Request): Promise<{ id: string; email: string; role: "teacher" | "admin" } | null> {
+  const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+  if (!token) return null;
+  const { data } = await admin().auth.getUser(token);
+  if (!data.user) return null;
+  const { data: row } = await admin().from("staff").select("role").eq("user_id", data.user.id).maybeSingle();
+  return row ? { id: data.user.id, email: data.user.email || "", role: row.role } : null;
+}
+
 export const json = (data: unknown, status = 200) => Response.json(data, { status });
 export const fail = (message: string, status = 400) => Response.json({ error: message }, { status });
 

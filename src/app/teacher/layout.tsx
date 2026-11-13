@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { sb } from "@/lib/supabase-browser";
 import { TeacherData, useTeacher } from "@/components/teacher-data";
-import { CHURCH_NAME, GROUPS, initials, timeOf } from "@/lib/shared";
+import { CHURCH_NAME, GROUPS, initials, loginName, timeOf, type StaffRole } from "@/lib/shared";
 
 // Line icons for the page tabs, drawn on a 24-unit grid.
 const ICONS: Record<string, string> = {
@@ -16,6 +16,7 @@ const ICONS: Record<string, string> = {
   lessons: "M12 6.5C10.3 5 7.8 4.3 4 4.5v14c3.8-.2 6.3.5 8 2 1.7-1.5 4.2-2.2 8-2v-14c-3.8-.2-6.3.5-8 2ZM12 6.5v14",
   students: "M9 11.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM2.5 20c.7-3.6 3.3-5.5 6.5-5.5s5.8 1.9 6.5 5.5M16 4.7a3.5 3.5 0 0 1 0 6.6M18 14.8c1.9.8 3.1 2.5 3.5 5.2",
   agreements: "M14 2.5H5v19h14V7.5ZM14 2.5v5h5M9 14.5l2 2 4-4",
+  teachers: "M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5",
 };
 const Icon = ({ name }: { name: string }) => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={ICONS[name]} /></svg>;
 
@@ -45,7 +46,7 @@ function TopBar({ email }: { email: string }) {
         <Link href="/teacher" className="ap-count">Follow-ups <strong>{t.followUps.length}</strong></Link>
         <button onClick={() => print()}>Print</button>
         <button onClick={() => sb().auth.signOut()}>Log out</button>
-        <span className="ap-me" role="img" aria-label={`Signed in as ${email}`} title={email}>{initials(email.split("@")[0].replace(/[._-]+/g, " ")) || "T"}</span>
+        <span className="ap-me" role="img" aria-label={`Signed in as ${loginName(email)}`} title={loginName(email)}>{initials(email.split("@")[0].replace(/[._-]+/g, " ")) || "T"}</span>
       </div>
     </header>
   );
@@ -70,15 +71,33 @@ function BottomBar() {
   );
 }
 
+/** Signed in, but not on the teacher list: this sign-in may belong to another app in the same project. */
+function NotStaff({ email }: { email: string }) {
+  return (
+    <div className="app"><main className="ap-body"><section className="panel" style={{ maxWidth: 520, margin: "60px auto", display: "flex", flexDirection: "column", gap: 10 }}>
+      <h1>This account isn't set up as a teacher</h1>
+      <p className="muted">You're signed in as <b>{loginName(email)}</b>. Ask an admin to add you on the Teachers page, then sign in again.</p>
+      <div><button className="btn" onClick={() => sb().auth.signOut()}>Sign out</button></div>
+    </section></main></div>
+  );
+}
+
 export default function TeacherLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter(), path = usePathname();
-  const [email, setEmail] = useState<string | null>(null);
+  const [email, setEmail] = useState<string | null>(null), [role, setRole] = useState<StaffRole | "none" | null>(null);
   useEffect(() => {
-    sb().auth.getSession().then(({ data }) => { if (data.session) setEmail(data.session.user.email || ""); else router.replace("/login"); });
+    sb().auth.getSession().then(async ({ data }) => {
+      if (!data.session) { router.replace("/login"); return; }
+      const r = await sb().from("staff").select("role").eq("user_id", data.session.user.id).maybeSingle();
+      // Before the staff table exists, every signed-in teacher keeps working as before.
+      setRole(r.error ? "teacher" : r.data ? r.data.role : "none");
+      setEmail(data.session.user.email || "");
+    });
     const { data: sub } = sb().auth.onAuthStateChange((_e, s) => { if (!s) router.replace("/login"); });
     return () => sub.subscription.unsubscribe();
   }, [router]);
-  if (email === null) return <div className="wrap"><p className="muted" style={{ padding: 40 }}>Loading…</p></div>;
+  if (email === null || role === null) return <div className="wrap"><p className="muted" style={{ padding: 40 }}>Loading…</p></div>;
+  if (role === "none") return <NotStaff email={email} />;
   // The print sheet and a student's workspace fill the whole window with their own bars.
   if (path === "/teacher/students/print" || /^\/teacher\/students\/[^/]+$/.test(path)) return <TeacherData>{children}</TeacherData>;
   return (
@@ -86,7 +105,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
       <div className="app">
         <TopBar email={email} />
         <nav className="ap-tabs noprint" aria-label="Views">
-          {TABS.map(([href, label, icon]) => <Link key={href} href={href} aria-current={path === href ? "page" : undefined}><i><Icon name={icon} /></i>{label}</Link>)}
+          {(role === "admin" ? [...TABS, ["/teacher/teachers", "Teachers", "teachers"]] : TABS).map(([href, label, icon]) => <Link key={href} href={href} aria-current={path === href ? "page" : undefined}><i><Icon name={icon} /></i>{label}</Link>)}
         </nav>
         <main className="ap-body">{children}</main>
         <BottomBar />
