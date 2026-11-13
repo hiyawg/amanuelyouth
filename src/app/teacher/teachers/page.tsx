@@ -80,7 +80,7 @@ function AddTeacher({ onAdd }: { onAdd: (body: object, ok: string) => Promise<bo
     if (await onAdd(f, `${f.name.trim()} added.`)) { setDone({ login, password: f.password }); setF({ name: "", login: "", password: newPassword(), role: "teacher" }); }
     setBusy(false);
   }
-  const share = done && `Your Shepherd teacher sign-in\n${location.origin}/login\nUsername: ${done.login}\nPassword: ${done.password}`;
+  const share = done && `Your Shepherd teacher sign-in\n${location.origin}/login\nUsername: ${done.login}\nPassword: ${done.password}\nAfter you sign in, click your initials at the top right to change your password.`;
   return (
     <form className="panel" onSubmit={submit}>
       <div className="panel-head"><h2>Add a teacher</h2></div>

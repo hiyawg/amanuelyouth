@@ -46,7 +46,7 @@ function TopBar({ email }: { email: string }) {
         <Link href="/teacher" className="ap-count">Follow-ups <strong>{t.followUps.length}</strong></Link>
         <button onClick={() => print()}>Print</button>
         <button onClick={() => sb().auth.signOut()}>Log out</button>
-        <span className="ap-me" role="img" aria-label={`Signed in as ${loginName(email)}`} title={loginName(email)}>{initials(email.split("@")[0].replace(/[._-]+/g, " ")) || "T"}</span>
+        <Link href="/teacher/account" className="ap-me" aria-label={`My account: signed in as ${loginName(email)}`} title={`${loginName(email)} · My account`}>{initials(email.split("@")[0].replace(/[._-]+/g, " ")) || "T"}</Link>
       </div>
     </header>
   );
