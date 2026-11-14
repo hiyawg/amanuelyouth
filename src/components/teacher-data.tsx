@@ -4,14 +4,14 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { sb } from "@/lib/supabase-browser";
 import {
   CONSENT_FORM, addDays, dayKey, newBadge, pickupCode, randomCode, streak as streakOf,
-  type Checkin, type Consent, type Group, type NoteKind, type StudentNote, type Lesson, type Method, type Progress, type Session, type Student, type StaffRole,
+  type Checkin, type Consent, type Group, type NoteKind, type StudentNote, type Lesson, type Method, type ParentMessage, type Progress, type Session, type Student, type StaffRole,
 } from "@/lib/shared";
 
 /** A teacher an admin can give students to. */
 export type StaffMember = { id: string; name: string; email: string };
 
-type Data = { students: Student[]; checkins: Checkin[]; sessions: Session[]; lessons: Lesson[]; progress: Progress[]; consents: Consent[]; consentsReady: boolean; notes: StudentNote[]; notesReady: boolean };
-const EMPTY: Data = { students: [], checkins: [], sessions: [], lessons: [], progress: [], consents: [], consentsReady: true, notes: [], notesReady: true };
+type Data = { students: Student[]; checkins: Checkin[]; sessions: Session[]; lessons: Lesson[]; progress: Progress[]; consents: Consent[]; consentsReady: boolean; notes: StudentNote[]; notesReady: boolean; messages: ParentMessage[]; messagesReady: boolean };
+const EMPTY: Data = { students: [], checkins: [], sessions: [], lessons: [], progress: [], consents: [], consentsReady: true, notes: [], notesReady: true, messages: [], messagesReady: true };
 
 function useTeacherDataValue(role: StaffRole) {
   const [d, setD] = useState<Data>(EMPTY);
@@ -22,7 +22,7 @@ function useTeacherDataValue(role: StaffRole) {
 
   const load = useCallback(async () => {
     const db = sb(), since = addDays(dayKey(), -180);
-    const [s, c, se, l, p, cs, n] = await Promise.all([
+    const [s, c, se, l, p, cs, n, m] = await Promise.all([
       db.from("students").select("*").order("name"),
       db.from("checkins").select("*").gte("date", since).order("at", { ascending: false }).limit(5000),
       db.from("sessions").select("*").order("date", { ascending: false }).limit(200),
@@ -30,12 +30,13 @@ function useTeacherDataValue(role: StaffRole) {
       db.from("progress").select("*").gte("date", since).limit(5000),
       db.from("consents").select("*").eq("form", CONSENT_FORM),
       db.from("student_notes").select("*").order("created_at", { ascending: false }).limit(5000),
+      db.from("parent_messages").select("*").gte("lesson_date", addDays(dayKey(), -60)).limit(5000),
     ]);
     const e = s.error || c.error || se.error || l.error || p.error;
     if (e) { setError(e.message); return; }
     setError("");
     // Agreements need the consents table from schema.sql. Until it exists, everything else still works.
-    setD({ students: s.data as Student[], checkins: c.data as Checkin[], sessions: se.data as Session[], lessons: l.data as Lesson[], progress: p.data as Progress[], consents: (cs.data || []) as Consent[], consentsReady: !cs.error, notes: (n.data || []) as StudentNote[], notesReady: !n.error });
+    setD({ students: s.data as Student[], checkins: c.data as Checkin[], sessions: se.data as Session[], lessons: l.data as Lesson[], progress: p.data as Progress[], consents: (cs.data || []) as Consent[], consentsReady: !cs.error, notes: (n.data || []) as StudentNote[], notesReady: !n.error, messages: (m.data || []) as ParentMessage[], messagesReady: !m.error });
     setLoaded(true);
   }, []);
 
@@ -126,6 +127,15 @@ function useTeacherDataValue(role: StaffRole) {
     },
     async deleteNote(id: string) {
       const r = await sb().from("student_notes").delete().eq("id", id);
+      if (r.error) throw new Error(r.error.message); reload();
+    },
+    /** Log the weekly lesson message as sent to these children's parent, or take that back. */
+    async markSent(ids: string[], lessonDate: string, channel: ParentMessage["channel"]) {
+      const r = await sb().from("parent_messages").upsert(ids.map(student_id => ({ student_id, lesson_date: lessonDate, channel })), { onConflict: "student_id,lesson_date" });
+      if (r.error) throw new Error(r.error.message); reload();
+    },
+    async unmarkSent(ids: string[], lessonDate: string) {
+      const r = await sb().from("parent_messages").delete().in("student_id", ids).eq("lesson_date", lessonDate);
       if (r.error) throw new Error(r.error.message); reload();
     },
     async removeStudents(ids: string[]) {

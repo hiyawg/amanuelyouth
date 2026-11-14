@@ -197,11 +197,28 @@ create policy "teachers manage students" on students for all to authenticated
   using (is_staff() and (is_admin() or teacher_id = auth.uid()))
   with check (is_staff() and (is_admin() or teacher_id = auth.uid()));
 
+-- Weekly lesson texts to parents. Teachers send them from their own phone; this log records which
+-- families were messaged about which Sunday, one row per child. lesson_texts = false means the parent asked to stop.
+alter table students add column if not exists lesson_texts boolean not null default true;
+create table if not exists parent_messages (
+  id uuid primary key default gen_random_uuid(),
+  student_id uuid not null references students(id) on delete cascade,
+  lesson_date date not null,
+  channel text not null check (channel in ('text', 'email', 'copy')),
+  sent_by uuid references auth.users(id) on delete set null default auth.uid(),
+  sent_at timestamptz not null default now(),
+  unique (student_id, lesson_date)
+);
+alter table parent_messages enable row level security;
+drop policy if exists "teachers manage parent_messages" on parent_messages;
+create policy "teachers manage parent_messages" on parent_messages for all to authenticated
+  using (is_staff() and sees_student(student_id)) with check (is_staff() and sees_student(student_id));
+
 -- Live updates for the teacher screens.
 do $$
 declare t text;
 begin
-  foreach t in array array['students','sessions','checkins','shepherd_lessons','progress','shepherd_schedule','consents','student_notes'] loop
+  foreach t in array array['students','sessions','checkins','shepherd_lessons','progress','shepherd_schedule','consents','student_notes','parent_messages'] loop
     if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = t) then
       execute format('alter publication supabase_realtime add table %I', t);
     end if;

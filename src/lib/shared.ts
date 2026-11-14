@@ -8,7 +8,11 @@ export type Student = {
   visitor: boolean; sample: boolean; created_at: string; parent_phone: string; parent_email: string;
   /** The teacher this student belongs to. Teachers see only their own students; admins see all. */
   teacher_id: string | null;
+  /** False when the parent asked not to get the weekly lesson text. Missing before the schema update. */
+  lesson_texts?: boolean;
 };
+/** A weekly lesson message logged as sent to a child's parent. */
+export type ParentMessage = { id: string; student_id: string; lesson_date: string; channel: "text" | "email" | "copy"; sent_by: string | null; sent_at: string };
 /** A phone number as typed, reduced to digits for texting. 10 digits are taken as a US number. Empty if it can't be one. */
 export function cleanPhone(raw: string): string {
   const d = raw.replace(/\D/g, "");
