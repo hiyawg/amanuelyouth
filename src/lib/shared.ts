@@ -12,7 +12,17 @@ export type Student = {
   lesson_texts?: boolean;
 };
 /** A weekly lesson message logged as sent to a child's parent. */
-export type ParentMessage = { id: string; student_id: string; lesson_date: string; channel: "text" | "email" | "copy"; sent_by: string | null; sent_at: string };
+export type ParentMessage = { id: string; student_id: string; lesson_date: string | null; announcement_id: string | null; badge: string | null; channel: "text" | "email" | "copy"; sent_by: string | null; sent_at: string };
+/** What a parent message is about: a Sunday's lesson, an announcement, or the child's badge link. */
+export type Topic = { lesson_date: string } | { announcement_id: string } | { badge: true };
+/** A notice on parents' badge pages. No teacher_id means every family; no grp means every group. */
+export type Announcement = {
+  id: string; title: string; body: string; grp: Group | null; teacher_id: string | null;
+  pinned: boolean; ends_on: string | null; author: string; created_by: string | null; created_at: string;
+};
+/** Whether an announcement is meant for this child's family, and still showing on the given day. */
+export const announcementFor = (a: Announcement, s: Pick<Student, "grp" | "teacher_id">, today: string) =>
+  (!a.ends_on || a.ends_on >= today) && (!a.grp || a.grp === s.grp) && (!a.teacher_id || a.teacher_id === s.teacher_id);
 /** A phone number as typed, reduced to digits for texting. 10 digits are taken as a US number. Empty if it can't be one. */
 export function cleanPhone(raw: string): string {
   const d = raw.replace(/\D/g, "");

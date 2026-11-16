@@ -141,10 +141,10 @@ alter table staff enable row level security;
 drop policy if exists "read own staff row" on staff;
 create policy "read own staff row" on staff for select to authenticated using (user_id = auth.uid());
 
--- The first admin, and the account already teaching.
-insert into staff (user_id, role) select id, 'admin' from auth.users where email = 'erpassabe@gmail.com'
+-- The admin account (sign-in name "admin"), and the accounts already teaching.
+insert into staff (user_id, role, name) select id, 'admin', 'Admin' from auth.users where email = 'admin@teachers.shepherd.local'
   on conflict (user_id) do update set role = 'admin';
-insert into staff (user_id, role) select id, 'teacher' from auth.users where email = 'serbesabe@gmail.com'
+insert into staff (user_id, role) select id, 'teacher' from auth.users where email in ('erpassabe@gmail.com', 'serbesabe@gmail.com')
   on conflict (user_id) do nothing;
 
 create or replace function is_staff() returns boolean
@@ -152,9 +152,9 @@ create or replace function is_staff() returns boolean
   as $$ select exists (select 1 from staff where user_id = auth.uid()) $$;
 
 -- Each student belongs to one teacher. A student a teacher adds is theirs; students added before this,
--- and visitors who sign themselves in at the door, go to the first admin until an admin moves them.
+-- and visitors who sign themselves in at the door, go to the admin account until an admin moves them.
 alter table students add column if not exists teacher_id uuid references auth.users(id) on delete set null default auth.uid();
-update students set teacher_id = (select id from auth.users where email = 'erpassabe@gmail.com') where teacher_id is null;
+update students set teacher_id = (select id from auth.users where email = 'admin@teachers.shepherd.local') where teacher_id is null;
 create index if not exists students_teacher_idx on students(teacher_id);
 
 create or replace function is_admin() returns boolean
@@ -214,11 +214,47 @@ drop policy if exists "teachers manage parent_messages" on parent_messages;
 create policy "teachers manage parent_messages" on parent_messages for all to authenticated
   using (is_staff() and sees_student(student_id)) with check (is_staff() and sees_student(student_id));
 
+-- Announcements shown on parents' badge pages, and textable from the Parent messages page.
+-- teacher_id set: only that teacher's families see it. grp set: only families with a child in that group.
+-- Admins post to everyone; a teacher posts only to their own families.
+create table if not exists announcements (
+  id uuid primary key default gen_random_uuid(),
+  title text not null check (char_length(title) between 1 and 120),
+  body text not null check (char_length(body) between 1 and 1500),
+  grp text check (grp in ('elementary', 'middle', 'high')),
+  teacher_id uuid references auth.users(id) on delete cascade,
+  pinned boolean not null default false,
+  ends_on date,
+  author text not null default '',
+  created_by uuid references auth.users(id) on delete set null default auth.uid(),
+  created_at timestamptz not null default now()
+);
+create index if not exists announcements_ends_idx on announcements(ends_on);
+alter table announcements enable row level security;
+drop policy if exists "teachers read announcements" on announcements;
+create policy "teachers read announcements" on announcements for select to authenticated
+  using (is_staff() and (is_admin() or teacher_id is null or teacher_id = auth.uid()));
+drop policy if exists "teachers manage announcements" on announcements;
+create policy "teachers manage announcements" on announcements for all to authenticated
+  using (is_staff() and (is_admin() or teacher_id = auth.uid()))
+  with check (is_staff() and (is_admin() or teacher_id = auth.uid()));
+
+-- The sent log covers announcements and badge links too: each row is about exactly one of a lesson date,
+-- an announcement, or a badge (the badge code sent, so a replaced badge shows as not sent yet).
+alter table parent_messages add column if not exists announcement_id uuid references announcements(id) on delete cascade;
+alter table parent_messages add column if not exists badge text;
+alter table parent_messages alter column lesson_date drop not null;
+alter table parent_messages drop constraint if exists parent_messages_student_id_lesson_date_key;
+alter table parent_messages drop constraint if exists parent_messages_one_per_topic;
+alter table parent_messages add constraint parent_messages_one_per_topic unique nulls not distinct (student_id, lesson_date, announcement_id, badge);
+alter table parent_messages drop constraint if exists parent_messages_one_topic;
+alter table parent_messages add constraint parent_messages_one_topic check (num_nonnulls(lesson_date, announcement_id, badge) = 1);
+
 -- Live updates for the teacher screens.
 do $$
 declare t text;
 begin
-  foreach t in array array['students','sessions','checkins','shepherd_lessons','progress','shepherd_schedule','consents','student_notes','parent_messages'] loop
+  foreach t in array array['students','sessions','checkins','shepherd_lessons','progress','shepherd_schedule','consents','student_notes','parent_messages','announcements'] loop
     if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = t) then
       execute format('alter publication supabase_realtime add table %I', t);
     end if;

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useTeacher, type StaffMember } from "@/components/teacher-data";
 import { BadgeQr } from "@/components/ui";
 import { badgePng, recall, safeName, saveFile, store } from "@/lib/browser";
-import { CHURCH_NAME, GROUPS, GROUP_KEYS, SAMPLE_STUDENTS, cleanEmail, cleanPhone, firstName, loginName, mailHref, prettyDate, smsHref, type Group, type Student } from "@/lib/shared";
+import { CHURCH_NAME, GROUPS, GROUP_KEYS, SAMPLE_STUDENTS, cleanEmail, cleanPhone, firstName, loginName, mailHref, prettyDate, smsHref, timeOf, type Group, type ParentMessage, type Student } from "@/lib/shared";
 
 type View = "badges" | "table";
 type SortKey = "name" | "grp" | "visits" | "streak" | "last" | "added";
@@ -41,7 +41,7 @@ export default function Students() {
         <div className="chips">
           {t.students.length === 0
             ? <button className="btn ghost" onClick={() => run(() => t.actions.addStudents(SAMPLE_STUDENTS.map(([name, grp, note]) => ({ name, grp, note, sample: true }))), "Added 9 sample students. Remove them any time.")}>Add a sample class to try it</button>
-            : <Link className="btn" href="/teacher/students/print">Print all badges</Link>}
+            : <><Link className="btn" href="/teacher/messages?a=badge">Text badges to parents</Link><Link className="btn ghost" href="/teacher/students/print">Print all badges</Link></>}
           {hasSample && <button className="btn ghost sm" onClick={() => run(() => t.actions.removeStudents(t.students.filter(s => s.sample).map(s => s.id)), "Sample students removed.")}>Remove sample students</button>}
         </div>
       </section>
@@ -172,6 +172,9 @@ function ShareBox({ s, onClose, onSave, onEdit }: { s: Student; onClose: () => v
   const link = `${location.origin}/b/${s.badge}`, first = firstName(s.name);
   const message = `Hi! Here is ${first}'s check-in badge for ${CHURCH_NAME}. Open this link on your phone and show the QR code at the door: ${link}\nAfter ${first} checks in, the same page shows your pickup code and this week's lesson. You can also save the badge to your photos or print it.`;
   const copy = (text: string, ok: string) => navigator.clipboard.writeText(text).then(() => setCopied(ok), () => setCopied("Copying was blocked. Select the text and copy it."));
+  // Log the send so the Parent messages page shows this family as having their badge.
+  const logged = (channel: ParentMessage["channel"]) => { t.actions.markSent([s.id], { badge: true }, channel).catch(() => {}); };
+  const last = t.messages.find(m => m.student_id === s.id && m.badge === s.badge);
   return (
     <section className={`panel share g-${s.grp}`}>
       <div className="panel-head"><h2>Send {first}'s badge to a parent</h2><button className="btn ghost sm" onClick={onClose}>Close</button></div>
@@ -181,16 +184,17 @@ function ShareBox({ s, onClose, onSave, onEdit }: { s: Student; onClose: () => v
           <div className="tbl-tools" style={{ marginBottom: 0 }}>
             <input className="input" type="tel" autoComplete="off" maxLength={20} aria-label="Parent's cell phone" placeholder="Parent's cell phone" value={phone} onChange={e => { setPhone(e.target.value); setPhoneMsg(""); }} />
             {typed
-              ? <a className="btn sm" href={smsHref(typed, message)} onClick={() => { if (changed) savePhone(); }}>Text parent</a>
+              ? <a className="btn sm" href={smsHref(typed, message)} onClick={() => { if (changed) savePhone(); logged("text"); }}>Text parent</a>
               : <button className="btn sm" disabled>Text parent</button>}
             {changed && <button className="btn ghost sm" onClick={savePhone}>Save number</button>}
-            {s.parent_email && <a className="btn ghost sm" href={mailHref(s.parent_email, `${first}'s check-in badge`, message)}>Email parent</a>}
+            {s.parent_email && <a className="btn ghost sm" href={mailHref(s.parent_email, `${first}'s check-in badge`, message)} onClick={() => logged("email")}>Email parent</a>}
             <button className="btn ghost sm" onClick={onEdit}>{s.parent_email ? "Edit contact" : "Add email"}</button>
           </div>
+          {last && <p className="out">✓ Badge link sent {prettyDate(last.sent_at.slice(0, 10))} at {timeOf(last.sent_at)}</p>}
           <p className="muted small">{phoneMsg || <>On your phone, <b>Text parent</b> opens Messages with the badge link ready to send. On a computer, copy the message below instead.</>}</p>
           <textarea className="input" rows={4} readOnly value={message} onFocus={e => e.target.select()} />
           <div className="chips">
-            <button className="btn sm" onClick={() => copy(message, "Message copied. Paste it into a text or email.")}>Copy message</button>
+            <button className="btn sm" onClick={() => { copy(message, "Message copied. Paste it into a text or email."); logged("copy"); }}>Copy message</button>
             <button className="btn ghost sm" onClick={() => copy(link, "Link copied.")}>Copy link only</button>
             <button className="btn ghost sm" onClick={onSave}>Save badge image to attach</button>
           </div>

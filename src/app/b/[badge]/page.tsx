@@ -14,6 +14,7 @@ type Data = {
   streak: number; token: string; consent: { signed_on: string } | null;
   lesson: { session_no: number | null; title: string; big_idea: string; verse_ref: string; verse_text: string; discussion: string } | null;
   progress: { verse_done: boolean; notes: boolean; submitted: boolean } | null;
+  news?: { id: string; title: string; body: string; pinned: boolean; created_at: string }[];
 };
 
 export default function ParentBadge() {
@@ -44,6 +45,18 @@ export default function ParentBadge() {
               <BadgeQr className="bq" badge={s.badge} /><code style={{ fontSize: "1rem" }}>{s.badge}</code>
             </article>
             <p className="muted small" style={{ textAlign: "center" }}>Turn your screen brightness up so the scanner can read it.</p>
+            {!!d.news?.length && (
+              <section className="panel stack" style={{ gap: 12 }} aria-label="News">
+                <span className="eyebrow">News from {first}'s class</span>
+                {d.news.map(n => (
+                  <div key={n.id} className="stack" style={{ gap: 4 }}>
+                    <b>{n.pinned && <span aria-label="Pinned">📌 </span>}{n.title}</b>
+                    <p style={{ whiteSpace: "pre-wrap", margin: 0 }}>{n.body}</p>
+                    <span className="muted small">{prettyDate(n.created_at.slice(0, 10))}</span>
+                  </div>
+                ))}
+              </section>
+            )}
             {d.consent
               ? <Link className="consent-card done-card" href={`/b/${s.badge}/consent`}><span>✓</span><div><b>Class agreement signed</b><small>{prettyDate(d.consent.signed_on)} · View or print your copy</small></div></Link>
               : <Link className="consent-card" href={`/b/${s.badge}/consent`}><span>✍️</span><div><b>Please sign the class agreement</b><small>Read the class expectations and sign with your finger. It takes 2 minutes.</small></div><em>Sign</em></Link>}
