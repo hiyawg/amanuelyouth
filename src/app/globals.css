@@ -254,6 +254,61 @@ textarea.input { resize: vertical; line-height: 1.45 }
 .chunk:hover { border-color: var(--accent) }
 .chunk.shake { border-color: var(--bad); color: var(--bad); animation: shake .35s }
 @keyframes shake { 25% { transform: translateX(-5px) } 75% { transform: translateX(5px) } }
+
+/* lesson map: drawn diagrams of a session's big ideas. God boxes are solid ink, Adam/man sun, Satan and death red. */
+.lm-fig { display: flex; flex-direction: column; gap: 14px }
+.lm-head { display: flex; gap: 10px; align-items: flex-start }
+.lm-head h2 { font-size: 1.15rem }
+.lm-n { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font: 900 .9rem var(--f-display); background: color-mix(in srgb, var(--sun) 22%, var(--surface)); color: var(--pre-ink) }
+.lm-take { font-weight: 600; background: color-mix(in srgb, var(--sun) 14%, var(--surface)); border-radius: 12px; padding: 10px 12px }
+.lm-two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px }
+.lm-col { display: flex; flex-direction: column; align-items: stretch }
+.lm-side { gap: 0; min-width: 0 }
+.lm-tag { font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; text-align: center }
+.lm-box { display: flex; flex-direction: column; gap: 3px; border: 2px solid var(--line); border-radius: 14px; padding: 10px 12px; background: var(--surface); min-width: 0; text-align: center }
+.lm-two > .lm-box { text-align: left }
+.lm-box .lm-tag { text-align: inherit; margin: 0 }
+.lm-box b { font: 800 1.02rem/1.2 var(--f-display) }
+.lm-box > span:last-child:not(.lm-tag) { font-size: .85rem; color: var(--muted) }
+.lm-box ul { margin: 0; padding-left: 18px; font-weight: 600; color: var(--ink) }
+.lm-box.god { background: var(--ink); border-color: var(--ink); color: var(--surface) }
+.lm-box.god > span:last-child { color: color-mix(in srgb, var(--surface) 78%, var(--ink)) }
+.lm-box.man { border-color: var(--sun); background: color-mix(in srgb, var(--sun) 14%, var(--surface)) }
+.lm-box.go { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)) }
+.lm-box.go .lm-tag { color: var(--accent-text) }
+.lm-box.bad { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 10%, var(--surface)) }
+.lm-box.bad .lm-tag { color: var(--bad) }
+.lm-box.dim { border-style: dashed }
+.lm-down { display: flex; flex-direction: column; align-items: center; padding: 3px 0; font-size: .78rem; font-weight: 600; color: var(--muted); text-align: center }
+.lm-down::before { content: ""; width: 2px; height: 12px; background: var(--muted) }
+.lm-down::after { content: ""; border: 6px solid transparent; border-top-color: var(--muted); border-bottom: 0 }
+.lm-cut { padding: 8px 0; font-size: .8rem; font-weight: 700; color: var(--bad); text-align: center }
+.lm-rings { width: min(100%, 240px); height: auto; align-self: center }
+.lm-rings text { font: 800 17px var(--f-display); text-anchor: middle }
+.lm-rings .r-body { fill: color-mix(in srgb, var(--accent) 14%, var(--surface)); stroke: var(--accent); stroke-width: 3 }
+.lm-rings .r-soul { fill: color-mix(in srgb, var(--sun) 22%, var(--surface)); stroke: var(--sun); stroke-width: 3 }
+.lm-rings .r-spirit { fill: var(--ink) }
+.lm-rings .t-body { fill: var(--accent-text) } .lm-rings .t-soul { fill: var(--pre-ink) } .lm-rings .t-spirit { fill: var(--surface) }
+.lm-key { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px }
+.lm-key li { display: flex; gap: 10px; align-items: flex-start }
+.lm-key i { flex: none; width: 13px; height: 13px; border-radius: 50%; margin-top: 4px }
+.lm-key i.r-spirit { background: var(--ink) } .lm-key i.r-soul { background: var(--sun) } .lm-key i.r-body { background: var(--accent) }
+.lm-key b { font-family: var(--f-display) }
+.lm-time { list-style: none; margin: 0; padding: 0 0 0 26px; position: relative; display: flex; flex-direction: column; gap: 14px }
+.lm-time::before { content: ""; position: absolute; left: 6px; top: 6px; bottom: 6px; width: 3px; border-radius: 2px; background: var(--line) }
+.lm-time li { position: relative; display: flex; flex-direction: column; gap: 1px; font-size: .9rem; color: var(--muted) }
+.lm-time li::before { content: ""; position: absolute; left: -26px; top: 3px; width: 15px; height: 15px; border-radius: 50%; background: var(--surface); border: 3px solid var(--bad) }
+.lm-time span { font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--bad) }
+.lm-time b { font: 800 1rem var(--f-display); color: var(--ink) }
+.lm-flow { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; color: var(--muted); font-weight: 700 }
+.lm-flow b { padding: 6px 13px; border-radius: 999px; border: 2px solid var(--line); font: 800 .95rem var(--f-display); color: var(--ink) }
+.lm-flow b.man { border-color: var(--sun); background: color-mix(in srgb, var(--sun) 14%, var(--surface)) }
+.lm-flow b.bad { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 10%, var(--surface)) }
+.lm-flow b.god { background: var(--ink); border-color: var(--ink); color: var(--surface) }
+.lm-back summary { cursor: pointer; padding: 2px 0 }
+.lm-backbody { display: flex; flex-direction: column; gap: 12px; margin-top: 12px }
+.lm-backbody .lm-fig { box-shadow: none; border: 1px solid var(--line) }
+@media (max-width: 360px) { .lm-two { grid-template-columns: 1fr } }
 .opts-list { display: flex; flex-direction: column; gap: 8px }
 .optb { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 14px; border: 2px solid var(--line); background: var(--surface); font-weight: 600; font-size: 1rem; text-align: left; cursor: pointer }
 .optb span { flex: none; width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; background: var(--line); font-weight: 800 }

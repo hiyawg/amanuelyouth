@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Footer, Logo } from "@/components/ui";
+import { hasMap, LessonMap } from "@/components/lesson-map";
 import { api, confetti, recall } from "@/lib/browser";
 import { answerStatus, firstName, sessionLabel, shuffle, verseChunks, type Group, type Progress } from "@/lib/shared";
 import type { StudentLesson } from "@/lib/server";
@@ -12,7 +13,7 @@ type Me = {
   student: { id: string; name: string; grp: Group }; lesson: StudentLesson | null; progress: Progress | null; modelAnswers: string[] | null;
   streak: number; badges: { name: string; desc: string; on: boolean }[];
 };
-type Mode = "menu" | "verse" | "notes" | "answers";
+type Mode = "menu" | "verse" | "notes" | "answers" | "map";
 
 export default function LessonPage() {
   return <Suspense fallback={null}><Lesson /></Suspense>;
@@ -61,6 +62,7 @@ function Lesson() {
             <div className="acts-list">
               {L.review.length > 0 && <button className="act" onClick={() => setMode("answers")}><span className="ico">📝</span><span className="txt"><b>Workbook questions</b><small>{L.review.length} questions · answer and submit</small></span><span className={`st ${answerStatus(p) === "none" || answerStatus(p) === "started" ? "" : "ok"}`}>{{ none: "Start", started: "Keep going", submitted: "Submitted ✓", reviewed: "Reviewed ✓" }[answerStatus(p)]}</span></button>}
               <button className="act" onClick={() => setMode("verse")}><span className="ico">📖</span><span className="txt"><b>Memory verse</b><small>{L.verse_ref}</small></span><span className={`st ${p?.verse_done ? "ok" : ""}`}>{p?.verse_done ? "Learned ✓" : "Play"}</span></button>
+              {hasMap(L.session_no) && <button className="act" onClick={() => setMode("map")}><span className="ico">🗺️</span><span className="txt"><b>Lesson map</b><small>The big ideas, drawn out</small></span><span className="st">Look</span></button>}
               <button className="act" onClick={() => setMode("notes")}><span className="ico">✏️</span><span className="txt"><b>My notes</b><small>What stood out to you</small></span><span className={`st ${p?.reflection ? "ok" : ""}`}>{p?.reflection ? "Saved ✓" : "Write"}</span></button>
             </div>
             {L.objectives.length > 0 && <section className="panel stack" style={{ gap: 8 }}><h2>You should leave holding</h2><ol className="sess-list">{L.objectives.map((x, i) => <li key={i}>{x}</li>)}</ol></section>}
@@ -79,6 +81,14 @@ function Lesson() {
         )}
         {me && L && g && mode === "verse" && <VerseGame text={L.verse_text} reference={L.verse_ref} grp={g} name={me.student.name} toMenu={toMenu} onDone={() => save({ verseDone: true })} />}
         {me && L && mode === "answers" && <Answers questions={L.review} progress={p ?? null} modelAnswers={me.modelAnswers} toMenu={toMenu} save={save} />}
+        {me && L && mode === "map" && L.session_no && (
+          <>
+            {toMenu}
+            <div><p className="eyebrow">Lesson map · {sessionLabel(L)}</p><h1 style={{ fontSize: "1.6rem" }}>{L.title}</h1></div>
+            <LessonMap session={L.session_no} />
+            {toMenu}
+          </>
+        )}
         {me && L && mode === "notes" && <Notes progress={p ?? null} toMenu={toMenu} onSave={reflection => save({ reflection })} />}
         {err && me && <p className="err">{err}</p>}
       </div></div>
