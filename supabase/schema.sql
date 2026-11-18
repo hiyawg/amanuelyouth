@@ -260,3 +260,9 @@ begin
     end if;
   end loop;
 end $$;
+
+-- Public files the app links to, such as the how-it-works video (media/how-to-amharic.mp4 and .jpg).
+-- Upload them in Storage → media. Anyone can read them; only the service role can add or change them.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('media', 'media', true, 52428800, array['video/mp4', 'image/jpeg', 'image/png'])
+on conflict (id) do nothing;

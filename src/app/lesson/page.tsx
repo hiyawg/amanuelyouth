@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Footer, Logo } from "@/components/ui";
+import { HowToVideo } from "@/components/how-to-video";
 import { hasMap, LessonMap } from "@/components/lesson-map";
 import { api, confetti, recall } from "@/lib/browser";
 import { answerStatus, firstName, sessionLabel, shuffle, verseChunks, type Group, type Progress } from "@/lib/shared";
@@ -65,6 +66,7 @@ function Lesson() {
               {hasMap(L.session_no) && <button className="act" onClick={() => setMode("map")}><span className="ico">🗺️</span><span className="txt"><b>Lesson map</b><small>The big ideas, drawn out</small></span><span className="st">Look</span></button>}
               <button className="act" onClick={() => setMode("notes")}><span className="ico">✏️</span><span className="txt"><b>My notes</b><small>What stood out to you</small></span><span className={`st ${p?.reflection ? "ok" : ""}`}>{p?.reflection ? "Saved ✓" : "Write"}</span></button>
             </div>
+            <HowToVideo />
             {L.objectives.length > 0 && <section className="panel stack" style={{ gap: 8 }}><h2>You should leave holding</h2><ol className="sess-list">{L.objectives.map((x, i) => <li key={i}>{x}</li>)}</ol></section>}
             {L.scriptures.length > 0 && (
               <section className="panel stack" style={{ gap: 12 }}>

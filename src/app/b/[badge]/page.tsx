@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { BadgeCard } from "@/components/badge-card";
+import { HowToVideo } from "@/components/how-to-video";
 import { BadgeQr, Footer, Logo } from "@/components/ui";
 import { api, badgePng, safeName, saveFile } from "@/lib/browser";
 import { GROUPS, dayKey, firstName, prettyDate, timeOf, type Group } from "@/lib/shared";
@@ -45,6 +46,7 @@ export default function ParentBadge() {
               <BadgeQr className="bq" badge={s.badge} /><code style={{ fontSize: "1rem" }}>{s.badge}</code>
             </article>
             <p className="muted small" style={{ textAlign: "center" }}>Turn your screen brightness up so the scanner can read it.</p>
+            <HowToVideo />
             {!!d.news?.length && (
               <section className="panel stack" style={{ gap: 12 }} aria-label="News">
                 <span className="eyebrow">News from {first}'s class</span>

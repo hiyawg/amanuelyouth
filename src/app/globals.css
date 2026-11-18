@@ -309,6 +309,20 @@ textarea.input { resize: vertical; line-height: 1.45 }
 .lm-backbody { display: flex; flex-direction: column; gap: 12px; margin-top: 12px }
 .lm-backbody .lm-fig { box-shadow: none; border: 1px solid var(--line) }
 @media (max-width: 360px) { .lm-two { grid-template-columns: 1fr } }
+
+/* how-it-works video: a folded card that opens to the player */
+.howto { padding: 12px 14px }
+.howto summary { display: flex; align-items: center; gap: 12px; cursor: pointer; list-style: none }
+.howto summary::-webkit-details-marker { display: none }
+.howto .ico { font-size: 1.5rem; flex: none }
+.howto .txt { flex: 1; min-width: 0 }
+.howto b { display: block } .howto small { color: var(--muted) }
+.howto .st { font-weight: 700; font-size: .85rem; color: var(--accent) }
+.howto[open] .st { visibility: hidden }
+.howto-langs { display: flex; gap: 6px; margin-top: 12px }
+.howto-langs button { flex: 1; padding: 8px 10px; border-radius: 999px; border: 2px solid var(--line); background: var(--surface); font-weight: 700; cursor: pointer }
+.howto-langs button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink) }
+.howto video { display: block; width: 100%; aspect-ratio: 16 / 9; margin-top: 10px; border-radius: 12px; background: #000 }
 .opts-list { display: flex; flex-direction: column; gap: 8px }
 .optb { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 14px; border: 2px solid var(--line); background: var(--surface); font-weight: 600; font-size: 1rem; text-align: left; cursor: pointer }
 .optb span { flex: none; width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; background: var(--line); font-weight: 800 }
