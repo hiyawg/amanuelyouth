@@ -1,17 +1,19 @@
 "use client";
 // A student's session for the week: the aim, Scriptures and questions, the memory verse game, their notes and badges.
+// Earlier sessions open from the past-lessons list, and students on a shared computer can sign out.
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Footer, Logo } from "@/components/ui";
 import { HowToVideo } from "@/components/how-to-video";
 import { hasMap, LessonMap } from "@/components/lesson-map";
-import { api, confetti, recall } from "@/lib/browser";
-import { answerStatus, firstName, sessionLabel, shuffle, verseChunks, type Group, type Progress } from "@/lib/shared";
+import { api, confetti, recall, store } from "@/lib/browser";
+import { answerStatus, firstName, prettyDate, sessionLabel, shuffle, verseChunks, type Group, type Progress } from "@/lib/shared";
 import type { StudentLesson } from "@/lib/server";
 
 type Me = {
   student: { id: string; name: string; grp: Group }; lesson: StudentLesson | null; progress: Progress | null; modelAnswers: string[] | null;
+  current: boolean; past: { date: string; session_no: number | null; title: string }[];
   streak: number; badges: { name: string; desc: string; on: boolean }[];
 };
 type Mode = "menu" | "verse" | "notes" | "answers" | "map";
@@ -21,22 +23,31 @@ export default function LessonPage() {
 }
 
 function Lesson() {
-  const sp = useSearchParams();
-  const fromBadge = sp.get("b");
+  const sp = useSearchParams(), router = useRouter();
+  const fromBadge = sp.get("b"), fromParent = !!sp.get("t");
   const [token, setToken] = useState<string | null>(null);
   const [me, setMe] = useState<Me | null>(null), [err, setErr] = useState("");
   const [mode, setMode] = useState<Mode>("menu");
+  const [date, setDate] = useState<string | null>(null);
 
   useEffect(() => {
     let tk = sp.get("t");
     if (!tk) { try { tk = JSON.parse(recall("shepherd.me") || "null")?.token; } catch {} }
-    if (!tk) { setErr("Check in first by scanning the code at the door."); return; }
+    if (!tk) { setErr("Sign in with the code on your badge, or scan the code at the door."); return; }
     setToken(tk);
-    api<Me>(`/api/me?token=${encodeURIComponent(tk)}`).then(setMe).catch(e => setErr(e.message));
   }, [sp]);
 
+  useEffect(() => {
+    if (!token) return;
+    api<Me>(`/api/me?token=${encodeURIComponent(token)}${date ? `&date=${date}` : ""}`)
+      .then(m => { setMe(m); setErr(""); setMode("menu"); scrollTo({ top: 0 }); })
+      .catch(e => setErr(e.message));
+  }, [token, date]);
+
+  function signOut() { store("shepherd.me"); router.replace("/"); }
+
   async function save(fields: object): Promise<boolean> {
-    try { const r = await api<Pick<Me, "progress" | "streak" | "badges">>("/api/me", { token, ...fields }); setMe(m => m && { ...m, ...r }); setErr(""); return true; }
+    try { const r = await api<Pick<Me, "progress" | "streak" | "badges">>("/api/me", { token, date: me?.lesson?.date, ...fields }); setMe(m => m && { ...m, ...r }); setErr(""); return true; }
     catch (e: any) { setErr(e.message); return false; }
   }
 
@@ -46,14 +57,18 @@ function Lesson() {
 
   return (
     <div className="wrap">
-      <header className="top"><div className="brand"><Logo size={30} /><div><b style={{ fontSize: "1.1rem" }}>Shepherd Check-In</b></div></div></header>
+      <header className="top">
+        <div className="brand"><Logo size={30} /><div><b style={{ fontSize: "1.1rem" }}>Shepherd Check-In</b></div></div>
+        {me && !fromParent && <span className="who-out">{firstName(me.student.name)} · <button className="linkbtn" onClick={signOut}>Sign out</button></span>}
+      </header>
       <div className="phone-stage"><div className="phone">
-        {err && !me && <div className="done"><h1>Hmm, we can't open your lesson</h1><p className="muted">{err}</p>{back}</div>}
+        {err && !me && <div className="done"><h1>Hmm, we can't open your lesson</h1><p className="muted">{err}</p>{back ?? <Link className="btn" href="/#signin">Sign in with your badge code</Link>}</div>}
         {!err && !me && <p className="muted">Loading your lesson…</p>}
         {me && !L && <div className="done"><h1>No lesson yet this week</h1><p className="muted">Your teacher hasn't posted it. Check back soon!</p>{back}</div>}
         {me && L && g && mode === "menu" && (
           <>
             {back}
+            {!me.current && <div className="past-note"><span>You're looking at an earlier lesson.</span><button className="linkbtn" onClick={() => setDate(null)}>Back to this week's lesson</button></div>}
             <div className="lhero g-disc">
               <span className="eyebrow">{[L.unit, sessionLabel(L)].filter(Boolean).join(" · ")}</span>
               <h1>{L.title}</h1>
@@ -67,6 +82,19 @@ function Lesson() {
               <button className="act" onClick={() => setMode("notes")}><span className="ico">✏️</span><span className="txt"><b>My notes</b><small>What stood out to you</small></span><span className={`st ${p?.reflection ? "ok" : ""}`}>{p?.reflection ? "Saved ✓" : "Write"}</span></button>
             </div>
             <HowToVideo />
+            {me.past.length > 1 && (
+              <section className="panel stack" style={{ gap: 8 }}>
+                <h2>All lessons</h2>
+                <p className="muted small">Open any session to answer its questions, learn its verse or look at its map.</p>
+                <div className="past-list">
+                  {me.past.map((x, i) => (
+                    <button key={x.date} className="past-item" aria-current={x.date === L.date ? "page" : undefined} onClick={() => setDate(i === 0 ? null : x.date)}>
+                      <b>{sessionLabel(x)} · {x.title}</b><small>{i === 0 ? "This week" : prettyDate(x.date)}</small>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )}
             {L.objectives.length > 0 && <section className="panel stack" style={{ gap: 8 }}><h2>You should leave holding</h2><ol className="sess-list">{L.objectives.map((x, i) => <li key={i}>{x}</li>)}</ol></section>}
             {L.scriptures.length > 0 && (
               <section className="panel stack" style={{ gap: 12 }}>
@@ -75,6 +103,7 @@ function Lesson() {
               </section>
             )}
             {L.discussion.length > 0 && <section className="panel stack" style={{ gap: 8 }}><h2>For discussion</h2><ol className="sess-list">{L.discussion.map((x, i) => <li key={i}>{x}</li>)}</ol></section>}
+            {!fromParent && <p className="muted small" style={{ textAlign: "center" }}>On a shared computer, tap <b>Sign out</b> at the top when you're done.</p>}
             <section>
               <h2 style={{ fontSize: "1.1rem", marginBottom: 8 }}>{firstName(me.student.name)}'s badges</h2>
               <div className="bdgs">{me.badges.map(b => <div key={b.name} className={`bdg ${b.on ? "on" : ""}`}><span>{b.on ? "🏅" : "🔒"}</span><b>{b.name}</b><small>{b.desc}</small></div>)}</div>

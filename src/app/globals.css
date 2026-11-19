@@ -310,6 +310,16 @@ textarea.input { resize: vertical; line-height: 1.45 }
 .lm-backbody .lm-fig { box-shadow: none; border: 1px solid var(--line) }
 @media (max-width: 360px) { .lm-two { grid-template-columns: 1fr } }
 
+/* student sign-in, sign-out and past lessons */
+.code-input { font-family: ui-monospace, Menlo, monospace; font-size: 1.15rem; letter-spacing: .08em; text-transform: uppercase }
+.who-out { font-size: .9rem; color: var(--muted); display: inline-flex; align-items: center; gap: 2px }
+.past-note { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding: 10px 14px; border-radius: 14px; background: color-mix(in srgb, var(--sun) 16%, var(--surface)); font-weight: 600 }
+.past-list { display: flex; flex-direction: column; gap: 6px }
+.past-item { display: flex; flex-direction: column; gap: 1px; text-align: left; padding: 10px 12px; border-radius: 12px; border: 2px solid var(--line); background: var(--surface); cursor: pointer }
+.past-item:hover { border-color: var(--accent) }
+.past-item[aria-current="page"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)) }
+.past-item small { color: var(--muted) }
+
 /* how-it-works video: a folded card that opens to the player */
 .howto { padding: 12px 14px }
 .howto summary { display: flex; align-items: center; gap: 12px; cursor: pointer; list-style: none }

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { StudentSignIn } from "@/components/student-sign-in";
 import { Footer, Logo } from "@/components/ui";
 import { CHURCH_NAME } from "@/lib/shared";
 
@@ -9,9 +10,10 @@ export default function Home() {
       <div className="phone-stage">
         <div className="phone">
           <h1>Welcome!</h1>
-          <section className="panel stack" style={{ gap: 8 }}>
+          <section className="panel stack" id="signin" style={{ gap: 10 }}>
             <h2>Students</h2>
-            <p className="muted">Scan the QR code on the screen by the classroom door with your phone camera.</p>
+            <p className="muted">At church, scan the QR code on the screen by the classroom door. On any computer, tablet or phone, sign in with your badge code to do your lessons.</p>
+            <StudentSignIn />
           </section>
           <section className="panel stack" style={{ gap: 10 }}>
             <h2>Parents</h2>

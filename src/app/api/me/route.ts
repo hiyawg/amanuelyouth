@@ -1,22 +1,28 @@
 // A student's own lesson, progress and badges, using the token their phone keeps.
-import { admin, currentLesson, fail, journey, json, lessonFor, publicStudent, studentFromToken as who } from "@/lib/server";
+// date picks an earlier session; without it they get this week's.
+import { admin, currentLesson, fail, journey, json, lessonFor, lessonOn, lessonsUpTo, publicStudent, studentFromToken as who } from "@/lib/server";
 
 export async function GET(req: Request) {
-  const s = await who(new URL(req.url).searchParams.get("token"));
+  const q = new URL(req.url).searchParams;
+  const s = await who(q.get("token"));
   if (!s) return fail("We couldn't find you. Check in again.", 401);
-  const L = await currentLesson();
+  const cur = await currentLesson(), L = await lessonOn(cur, q.get("date"));
+  if (q.get("date") && !L) return fail("We couldn't find that lesson.", 404);
   const prog = L ? (await admin().from("progress").select("*").eq("student_id", s.id).eq("date", L.date).maybeSingle()).data : null;
   // Model answers stay hidden until a teacher has reviewed this student's answers.
   const modelAnswers = L && prog?.reviewed_at ? (L.review || []).map(r => r.a) : null;
-  return json({ student: publicStudent(s), lesson: L ? lessonFor(L) : null, progress: prog, modelAnswers, ...(await journey(s.id)) });
+  return json({
+    student: publicStudent(s), lesson: L ? lessonFor(L) : null, current: L?.date === cur?.date, past: cur ? await lessonsUpTo(cur.date) : [],
+    progress: prog, modelAnswers, ...(await journey(s.id)),
+  });
 }
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
   const s = await who(body.token);
   if (!s) return fail("We couldn't find you. Check in again.", 401);
-  const L = await currentLesson();
-  if (!L) return fail("There's no lesson this week.", 404);
+  const L = await lessonOn(await currentLesson(), body.date);
+  if (!L) return fail(body.date ? "We couldn't find that lesson." : "There's no lesson this week.", 404);
   const db = admin();
   const row: Record<string, unknown> = { student_id: s.id, date: L.date, updated_at: new Date().toISOString() };
   if (body.verseDone) row.verse_done = true;

@@ -86,6 +86,38 @@ export async function currentLesson(today = dayKey()): Promise<Lesson | null> {
   return (next.data?.[0] as Lesson) || null;
 }
 
+/** A lesson a student may open: this week's, or any earlier one by date. Never a later one. */
+export async function lessonOn(cur: Lesson | null, date: unknown): Promise<Lesson | null> {
+  if (typeof date !== "string" || !date || date === cur?.date) return cur;
+  if (!cur || date > cur.date) return null;
+  const { data } = await admin().from("shepherd_lessons").select("*").eq("date", date).maybeSingle();
+  return (data as Lesson) || null;
+}
+/** Every session up to this week's, newest first, for the student's past-lessons list. */
+export async function lessonsUpTo(date: string) {
+  const { data } = await admin().from("shepherd_lessons").select("date, session_no, title").lte("date", date).order("date", { ascending: false });
+  return (data || []) as Pick<Lesson, "date" | "session_no" | "title">[];
+}
+
+// Wrong badge codes per address, so nobody can sit at the sign-in box or a badge link guessing codes.
+// Kept in memory on each server instance: enough to make guessing slow without a table for it.
+// The limit is generous because a whole church on one Wi-Fi shares an address.
+const misses = new Map<string, number[]>();
+const MISS_WINDOW = 15 * 60_000, MAX_MISSES = 20;
+const addressOf = (req: Request) => req.headers.get("x-forwarded-for")?.split(",")[0].trim() || req.headers.get("x-real-ip") || "local";
+export function tooManyMisses(req: Request): boolean {
+  const k = addressOf(req), now = Date.now();
+  const recent = (misses.get(k) || []).filter(t => now - t < MISS_WINDOW);
+  misses.set(k, recent);
+  return recent.length >= MAX_MISSES;
+}
+export function noteMiss(req: Request) {
+  if (misses.size > 5000) misses.clear();
+  const k = addressOf(req);
+  misses.set(k, [...(misses.get(k) || []), Date.now()]);
+}
+export const TOO_MANY = "Too many wrong codes. Wait 15 minutes, then try again.";
+
 export async function checkIn(student: Student, method: Method, date = dayKey()) {
   const db = admin();
   const row = { student_id: student.id, date, method, pickup: student.grp === "elementary" ? pickupCode() : null };

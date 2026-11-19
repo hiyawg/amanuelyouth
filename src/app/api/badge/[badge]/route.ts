@@ -1,12 +1,13 @@
 // The parent's badge page: the child's badge, today's check-in and pickup code, this week's lesson and announcements.
-import { admin, currentLesson, fail, journey, json, studentToken } from "@/lib/server";
+import { TOO_MANY, admin, currentLesson, fail, journey, json, noteMiss, studentToken, tooManyMisses } from "@/lib/server";
 import { CONSENT_FORM, announcementFor, dayKey, type Announcement, type Student } from "@/lib/shared";
 
-export async function GET(_req: Request, { params }: { params: Promise<{ badge: string }> }) {
+export async function GET(req: Request, { params }: { params: Promise<{ badge: string }> }) {
+  if (tooManyMisses(req)) return fail(TOO_MANY, 429);
   const { badge } = await params;
   const db = admin();
   const { data: s } = await db.from("students").select("*").eq("badge", decodeURIComponent(badge).toUpperCase()).maybeSingle();
-  if (!s) return fail("This badge link doesn't work anymore. Ask your child's teacher for a new one.", 404);
+  if (!s) { noteMiss(req); return fail("This badge link doesn't work anymore. Ask your child's teacher for a new one.", 404); }
   const st = s as Student;
   const [today, L, j, consent, ann] = await Promise.all([
     db.from("checkins").select("at, pickup, out_at").eq("student_id", st.id).eq("date", dayKey()).maybeSingle(),
