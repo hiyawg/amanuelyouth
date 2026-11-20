@@ -305,6 +305,7 @@ textarea.input { resize: vertical; line-height: 1.45 }
 .lm-flow b.man { border-color: var(--sun); background: color-mix(in srgb, var(--sun) 14%, var(--surface)) }
 .lm-flow b.bad { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 10%, var(--surface)) }
 .lm-flow b.god { background: var(--ink); border-color: var(--ink); color: var(--surface) }
+.lm-flow b.go { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)) }
 .lm-back summary { cursor: pointer; padding: 2px 0 }
 .lm-backbody { display: flex; flex-direction: column; gap: 12px; margin-top: 12px }
 .lm-backbody .lm-fig { box-shadow: none; border: 1px solid var(--line) }
