@@ -106,7 +106,7 @@ const MAPS: Record<number, Map> = {
           </div>
         </Fig>
         <Fig n={4} title="What is Spiritual Death?" refs="Genesis 5:5 · Revelation 20:14" take="Adam's death was two-fold: first in spirit, then in body.">
-          <p>Spiritual Death is being <strong>separated from God</strong>, and it is a <strong>nature</strong>: man now has Satan's nature and lives without God's life. It does not mean he stops existing.</p>
+          <p>Spiritual Death is being <strong>separated from God</strong>. Man's <strong>nature</strong> became fallen and sinful, and he lives without God's life, under Satan's rule but not one with him. It does not mean he stops existing.</p>
           <ol className="lm-time">
             <li><span>The same day</span><b>Spiritual death</b>Adam died in his spirit the moment he sinned.</li>
             <li><span>930 years later</span><b>Physical death</b>His body died, the fruit of the spiritual death.</li>
@@ -117,10 +117,10 @@ const MAPS: Record<number, Map> = {
           <div className="lm-flow"><b className="man">One man</b>→<b>sin entered</b>→<b className="bad">death</b>→<b className="god">all men</b></div>
           <p>Adam was the head of the human race, so everyone born after him shares his condition. We were born into it, not only guilty of things we did.</p>
         </Fig>
-        <Fig n={6} title="Two natures, two kinds of fruit" refs="John 8:44" take="If the problem is a nature, man needs more than trying harder. He needs a new nature from God.">
+        <Fig n={6} title="Two kinds of fruit" refs="Galatians 5:19–23" take="If the problem is a fallen nature, man needs more than trying harder. He needs a new nature from God.">
           <div className="lm-two">
-            <Box k="go" tag="God's nature"><ul><li>Love</li><li>Joy</li><li>Peace</li><li>Goodness</li></ul></Box>
-            <Box k="bad" tag="Satan's nature"><ul><li>Hatred</li><li>Lust</li><li>Murder</li><li>Every kind of evil</li></ul></Box>
+            <Box k="go" tag="God's life"><ul><li>Love</li><li>Joy</li><li>Peace</li><li>Goodness</li></ul></Box>
+            <Box k="bad" tag="The fallen nature"><ul><li>Hatred</li><li>Lust</li><li>Murder</li><li>Every kind of evil</li></ul></Box>
           </div>
         </Fig>
       </>
