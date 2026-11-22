@@ -98,6 +98,9 @@ alter table progress add column if not exists answers jsonb not null default '[]
 alter table progress add column if not exists submitted_at timestamptz;
 alter table progress add column if not exists reviewed_at timestamptz;
 alter table progress add column if not exists teacher_comment text not null default '';
+-- Teachers also read each student's reflection and can reply, separately from the workbook answers.
+alter table progress add column if not exists reflection_reviewed_at timestamptz;
+alter table progress add column if not exists reflection_comment text not null default '';
 
 -- A parent's cell number, so teachers can text them the badge link. Only teachers can read it.
 alter table students add column if not exists parent_phone text not null default '';

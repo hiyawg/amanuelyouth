@@ -10,8 +10,8 @@ import {
 /** A teacher an admin can give students to. */
 export type StaffMember = { id: string; name: string; email: string };
 
-type Data = { students: Student[]; checkins: Checkin[]; sessions: Session[]; lessons: Lesson[]; progress: Progress[]; consents: Consent[]; consentsReady: boolean; notes: StudentNote[]; notesReady: boolean; messages: ParentMessage[]; messagesReady: boolean; announcements: Announcement[]; announcementsReady: boolean };
-const EMPTY: Data = { students: [], checkins: [], sessions: [], lessons: [], progress: [], consents: [], consentsReady: true, notes: [], notesReady: true, messages: [], messagesReady: true, announcements: [], announcementsReady: true };
+type Data = { students: Student[]; checkins: Checkin[]; sessions: Session[]; lessons: Lesson[]; progress: Progress[]; consents: Consent[]; consentsReady: boolean; notes: StudentNote[]; notesReady: boolean; messages: ParentMessage[]; messagesReady: boolean; announcements: Announcement[]; announcementsReady: boolean; reflectionsReady: boolean };
+const EMPTY: Data = { students: [], checkins: [], sessions: [], lessons: [], progress: [], consents: [], consentsReady: true, notes: [], notesReady: true, messages: [], messagesReady: true, announcements: [], announcementsReady: true, reflectionsReady: true };
 
 function useTeacherDataValue(role: StaffRole) {
   const [d, setD] = useState<Data>(EMPTY);
@@ -22,7 +22,7 @@ function useTeacherDataValue(role: StaffRole) {
 
   const load = useCallback(async () => {
     const db = sb(), since = addDays(dayKey(), -180);
-    const [s, c, se, l, p, cs, n, m, an] = await Promise.all([
+    const [s, c, se, l, p, cs, n, m, an, rr] = await Promise.all([
       db.from("students").select("*").order("name"),
       db.from("checkins").select("*").gte("date", since).order("at", { ascending: false }).limit(5000),
       db.from("sessions").select("*").order("date", { ascending: false }).limit(200),
@@ -32,12 +32,13 @@ function useTeacherDataValue(role: StaffRole) {
       db.from("student_notes").select("*").order("created_at", { ascending: false }).limit(5000),
       db.from("parent_messages").select("*").gte("sent_at", addDays(dayKey(), -90)).limit(5000),
       db.from("announcements").select("*").order("created_at", { ascending: false }).limit(200),
+      db.from("progress").select("reflection_reviewed_at").limit(1),
     ]);
     const e = s.error || c.error || se.error || l.error || p.error;
     if (e) { setError(e.message); return; }
     setError("");
     // Agreements need the consents table from schema.sql. Until it exists, everything else still works.
-    setD({ students: s.data as Student[], checkins: c.data as Checkin[], sessions: se.data as Session[], lessons: l.data as Lesson[], progress: p.data as Progress[], consents: (cs.data || []) as Consent[], consentsReady: !cs.error, notes: (n.data || []) as StudentNote[], notesReady: !n.error, messages: (m.data || []) as ParentMessage[], messagesReady: !m.error, announcements: (an.data || []) as Announcement[], announcementsReady: !an.error });
+    setD({ students: s.data as Student[], checkins: c.data as Checkin[], sessions: se.data as Session[], lessons: l.data as Lesson[], progress: p.data as Progress[], consents: (cs.data || []) as Consent[], consentsReady: !cs.error, notes: (n.data || []) as StudentNote[], notesReady: !n.error, messages: (m.data || []) as ParentMessage[], messagesReady: !m.error, announcements: (an.data || []) as Announcement[], announcementsReady: !an.error, reflectionsReady: !rr.error });
     setLoaded(true);
   }, []);
 
@@ -93,6 +94,14 @@ function useTeacherDataValue(role: StaffRole) {
       if (patch.reopen) { row.submitted_at = null; row.reviewed_at = null; }
       const r = await sb().from("progress").update(row).eq("student_id", sid).eq("date", date);
       if (r.error) throw new Error(r.error.message); reload();
+    },
+    /** Mark a student's reflection read, with an optional reply they see on their lesson page. */
+    async reviewReflection(sid: string, date: string, patch: { read: boolean; comment?: string }) {
+      const row: Record<string, unknown> = { reflection_reviewed_at: patch.read ? new Date().toISOString() : null };
+      if (patch.comment !== undefined) row.reflection_comment = patch.comment.slice(0, 2000);
+      const r = await sb().from("progress").update(row).eq("student_id", sid).eq("date", date);
+      if (r.error) throw new Error(/reflection_/.test(r.error.message) ? "Reflection reviews aren't turned on yet. Run the latest supabase/schema.sql in Supabase." : r.error.message);
+      reload();
     },
     async checkout(checkinId: string) {
       const r = await sb().from("checkins").update({ out_at: new Date().toISOString() }).eq("id", checkinId);

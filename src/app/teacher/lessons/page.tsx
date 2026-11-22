@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useTeacher } from "@/components/teacher-data";
 import { Avatar } from "@/components/ui";
-import { THE_HOUR, addDays, answerStatus, prettyDate, sessionLabel, sundayFrom, timeOf, type Lesson, type Progress } from "@/lib/shared";
+import { THE_HOUR, addDays, answerStatus, prettyDate, reflectionStatus, sessionLabel, sundayFrom, timeOf, type Lesson, type Progress } from "@/lib/shared";
 
 const blank = (date: string, session_no: number | null): Lesson => ({
   date, session_no, unit: "", title: "", subtitle: "", big_idea: "", objectives: ["", "", ""],
@@ -83,6 +83,7 @@ export default function Lessons() {
                   <div className="who"><div><b>{l.session_no ? `${l.session_no}. ` : ""}{l.title}</b><span className="meta">{prettyDate(l.date)}{l.verse_ref ? ` · ${l.verse_ref}` : ""}</span>
                     {ps.length > 0 && <span className="meta">{ps.filter(p => p.verse_done).length} learned the verse · {ps.filter(p => p.reflection?.trim()).length} wrote notes</span>}</div></div>
                   {ps.some(p => answerStatus(p) === "submitted") && <span className="chip fire">📝 {ps.filter(p => answerStatus(p) === "submitted").length} to review</span>}
+                  {t.reflectionsReady && ps.some(p => reflectionStatus(p) === "new") && <span className="chip fire">✏️ {ps.filter(p => reflectionStatus(p) === "new").length} new {ps.filter(p => reflectionStatus(p) === "new").length === 1 ? "reflection" : "reflections"}</span>}
                   {t.currentLesson?.date === l.date && <span className="chip visit">This week</span>}
                   <button className="btn ghost sm" onClick={() => open(l)}>{orig === l.date ? "Open" : "View"}</button>
                 </li>
@@ -181,7 +182,7 @@ function SessionView({ l, onEdit }: { l: Lesson; onEdit: () => void }) {
         {l.book && <p className="muted small">Book: {l.book}</p>}
         {l.big_idea && <p><strong>Aim.</strong> {l.big_idea}</p>}
       </section>
-      {l.review.length > 0 && <AnswersPanel l={l} />}
+      <ReviewPanel l={l} />
       {l.objectives.length > 0 && <section className="panel stack" style={{ gap: 8 }}><h2>They should leave holding</h2><ol className="sess-list">{l.objectives.map((x, i) => <li key={i}>{x}</li>)}</ol></section>}
       {l.notes.length > 0 && <section className="panel stack teacher-only" style={{ gap: 10 }}><h2>Notes for the teacher <span className="n">(read before the session)</span></h2>{l.notes.map((x, i) => <div key={i} className="qa"><b>{x.heading}</b><p>{x.body}</p></div>)}</section>}
       {l.terms.length > 0 && <section className="panel stack teacher-only" style={{ gap: 8 }}><h2>Key terms</h2>{l.terms.map((x, i) => <div key={i} className="qa"><b>{x.term}</b><p>{x.meaning}</p></div>)}</section>}
@@ -205,6 +206,24 @@ function SessionView({ l, onEdit }: { l: Lesson; onEdit: () => void }) {
 const STATUS = { none: "Not started", started: "In progress", submitted: "Submitted", reviewed: "Reviewed" } as const;
 const RANK = { submitted: 0, started: 1, reviewed: 2, none: 3 } as const;
 
+/** Students' work for this session, in two tabs: workbook answers and reflections, each with its own queue to review. */
+function ReviewPanel({ l }: { l: Lesson }) {
+  const t = useTeacher();
+  const ps = t.progress.filter(p => p.date === l.date);
+  const answersWaiting = ps.filter(p => answerStatus(p) === "submitted").length, notesWaiting = ps.filter(p => reflectionStatus(p) === "new").length;
+  const [tab, setTab] = useState<"answers" | "reflections">(l.review.length || !notesWaiting ? "answers" : "reflections");
+  return (
+    <section className="panel stack" style={{ gap: 8 }}>
+      <h2>Students' work</h2>
+      <div className="seg review-tabs" role="tablist" aria-label="Students' work" style={{ marginTop: 0 }}>
+        <button role="tab" aria-selected={tab === "answers"} className={tab === "answers" ? "on" : ""} onClick={() => setTab("answers")}>📝 Workbook answers{answersWaiting ? <span className="count">{answersWaiting}</span> : null}</button>
+        <button role="tab" aria-selected={tab === "reflections"} className={tab === "reflections" ? "on" : ""} onClick={() => setTab("reflections")}>✏️ Reflections{notesWaiting ? <span className="count">{notesWaiting}</span> : null}</button>
+      </div>
+      {tab === "answers" ? (l.review.length ? <AnswersPanel l={l} /> : <p className="muted small">This session has no workbook questions.</p>) : <ReflectionsPanel l={l} />}
+    </section>
+  );
+}
+
 /** Students' workbook answers for this session: who has submitted, and a place to review each one. */
 function AnswersPanel({ l }: { l: Lesson }) {
   const t = useTeacher();
@@ -214,8 +233,7 @@ function AnswersPanel({ l }: { l: Lesson }) {
     .sort((a, b) => RANK[answerStatus(a.p)] - RANK[answerStatus(b.p)] || a.s!.name.localeCompare(b.s!.name));
   const count = (k: keyof typeof STATUS) => rows.filter(r => answerStatus(r.p) === k).length;
   return (
-    <section className="panel stack" style={{ gap: 8 }}>
-      <h2>Workbook answers</h2>
+    <>
       <p className="muted small">{count("submitted")} waiting for review · {count("reviewed")} reviewed · {count("started")} still working</p>
       <ul className="list">
         {rows.length ? rows.map(({ p, s }) => {
@@ -230,7 +248,59 @@ function AnswersPanel({ l }: { l: Lesson }) {
           );
         }) : <li className="empty">No answers yet. Students answer from their lesson page after checking in.</li>}
       </ul>
-    </section>
+    </>
+  );
+}
+
+const NOTE_STATUS = { new: "New", read: "Read" } as const;
+
+/** Students' reflections ("My notes") for this session: read each one and reply if you like. */
+function ReflectionsPanel({ l }: { l: Lesson }) {
+  const t = useTeacher();
+  const [openId, setOpenId] = useState<string | null>(null);
+  const rows = t.progress.filter(p => p.date === l.date && reflectionStatus(p) !== "none")
+    .map(p => ({ p, s: t.byId.get(p.student_id) })).filter(o => o.s)
+    .sort((a, b) => Number(reflectionStatus(a.p) === "read") - Number(reflectionStatus(b.p) === "read") || a.s!.name.localeCompare(b.s!.name));
+  const fresh = rows.filter(r => reflectionStatus(r.p) === "new").length;
+  return (
+    <>
+      {!t.reflectionsReady && <div className="banner">Reflection reviews aren't turned on yet. In Supabase, open <b>SQL Editor</b>, paste the latest <code>supabase/schema.sql</code> and click <b>Run</b>. Until then you can read reflections here, but not mark them or reply.</div>}
+      <p className="muted small">{fresh} new · {rows.length - fresh} read</p>
+      <ul className="list">
+        {rows.length ? rows.map(({ p, s }) => {
+          const st = reflectionStatus(p) as "new" | "read";
+          return (
+            <li key={p.student_id} className="row" style={{ alignItems: "flex-start" }}>
+              <div className="who"><Avatar name={s!.name} grp={s!.grp} /><div><b>{s!.name}</b><span className="meta">Saved {prettyDate(p.updated_at.slice(0, 10))}, {timeOf(p.updated_at)}</span></div></div>
+              <span className={`chip ${st === "new" ? "fire" : "visit"}`}>{NOTE_STATUS[st]}</span>
+              <button className="btn ghost sm" onClick={() => setOpenId(openId === p.student_id ? null : p.student_id)}>{openId === p.student_id ? "Close" : st === "new" ? "Review" : "View"}</button>
+              {openId === p.student_id && <ReflectionReview p={p} />}
+            </li>
+          );
+        }) : <li className="empty">No reflections yet. Students write them under "My notes" on their lesson page.</li>}
+      </ul>
+    </>
+  );
+}
+
+function ReflectionReview({ p }: { p: Progress }) {
+  const t = useTeacher();
+  const [comment, setComment] = useState(p.reflection_comment || ""), [msg, setMsg] = useState(""), [busy, setBusy] = useState(false);
+  const run = async (read: boolean, done: string) => {
+    setBusy(true); setMsg("");
+    try { await t.actions.reviewReflection(p.student_id, p.date, { read, comment }); setMsg(done); } catch (e: any) { setMsg(e.message); }
+    setBusy(false);
+  };
+  return (
+    <div className="stack" style={{ gap: 12, flexBasis: "100%", paddingTop: 6 }}>
+      <p className="answer" style={{ whiteSpace: "pre-wrap" }}>{p.reflection}</p>
+      <div className="field"><label htmlFor={`rc-${p.student_id}`}>Reply to the student (they see it on their lesson page)</label><textarea className="input" id={`rc-${p.student_id}`} rows={2} value={comment} onChange={e => setComment(e.target.value)} disabled={!t.reflectionsReady} /></div>
+      <div className="chips" style={{ alignItems: "center" }}>
+        <button className="btn sm" disabled={busy || !t.reflectionsReady} onClick={() => run(true, comment.trim() ? "Reply sent." : "Marked read.")}>{p.reflection_reviewed_at ? (comment.trim() ? "Update reply" : "Save") : comment.trim() ? "Send reply" : "Mark read"}</button>
+        {p.reflection_reviewed_at && <button className="btn ghost sm" disabled={busy} onClick={() => run(false, "Moved back to new.")}>Mark as new</button>}
+        {msg && <span className="muted small">{msg}</span>}
+      </div>
+    </div>
   );
 }
 

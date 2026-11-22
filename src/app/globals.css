@@ -841,3 +841,9 @@ footer em { font-family: var(--f-display); font-style: normal; font-weight: 600;
 .pwrow { display: flex; gap: 4px; align-items: center } .pwrow .input { font-family: ui-monospace, Menlo, monospace; min-width: 0 }
 .cred { margin-top: 12px; padding: 10px 12px; border: 2px solid var(--ws-accent, var(--sun)); border-radius: 6px; display: flex; flex-direction: column; gap: 8px }
 .cred pre { margin: 0; padding: 8px 10px; background: var(--soft); border-radius: 4px; font-size: 12.5px; white-space: pre-wrap; overflow-wrap: anywhere }
+
+/* teacher feedback on the student's lesson page */
+.feedback { border: 2px solid color-mix(in srgb, var(--accent) 45%, var(--line)) }
+.fb-item { display: flex; flex-direction: column; gap: 4px; padding-top: 10px; border-top: 1px solid var(--line) }
+.fb-item:first-of-type { padding-top: 0; border-top: 0 }
+.fb-item p { white-space: pre-wrap }

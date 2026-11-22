@@ -301,7 +301,7 @@ export default function Workspace() {
                     <span className="muted">Group</span><span>{g.label} · {g.grades}</span>
                     <span className="muted">Pickup</span><span className={dayCheckin?.pickup && !dayCheckin.out_at ? "pend" : ""}>{!dayCheckin ? "–" : !dayCheckin.pickup ? "No code needed" : dayCheckin.out_at ? `Picked up ${timeOf(dayCheckin.out_at)}` : `Pending · code ${dayCheckin.pickup}`}</span>
                   </div>
-                  {dayProg?.reflection?.trim() && <div><div className="ws-lbl">{first}'s notes</div><p className="ws-quote">{dayProg.reflection}</p></div>}
+                  {dayProg?.reflection?.trim() && <div><div className="ws-lbl">{first}'s notes</div><p className="ws-quote">{dayProg.reflection}</p>{dayProg.reflection_comment?.trim() && <p className="muted">Teacher reply: {dayProg.reflection_comment}</p>}</div>}
                   {dayProg && dayProg.answers.some(a => a.a.trim()) && (
                     <div><div className="ws-lbl">Workbook answers</div>
                       {dayProg.answers.map((a, i) => <div key={i} className="ws-qa"><b>{i + 1}. {a.q}</b><p>{a.a.trim() || <span className="muted">No answer</span>}</p></div>)}

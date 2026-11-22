@@ -14,6 +14,7 @@ import type { StudentLesson } from "@/lib/server";
 type Me = {
   student: { id: string; name: string; grp: Group }; lesson: StudentLesson | null; progress: Progress | null; modelAnswers: string[] | null;
   current: boolean; past: { date: string; session_no: number | null; title: string }[];
+  feedback?: { date: string; session_no: number | null; title: string; answers: string; reflection: string }[];
   streak: number; badges: { name: string; desc: string; on: boolean }[];
 };
 type Mode = "menu" | "verse" | "notes" | "answers" | "map";
@@ -75,11 +76,24 @@ function Lesson() {
               {L.subtitle && <p className="muted">{L.subtitle}</p>}
               {L.big_idea && <p><strong>Aim.</strong> {L.big_idea}</p>}
             </div>
+            {!!me.feedback?.length && (
+              <section className="panel stack feedback" style={{ gap: 10 }} aria-label="From your teacher">
+                <h2>💬 From your teacher</h2>
+                {me.feedback.map(f => (
+                  <div key={f.date} className="fb-item">
+                    <span className="eyebrow">{f.session_no ? `Session ${f.session_no}` : prettyDate(f.date)}{f.title ? ` · ${f.title}` : ""}</span>
+                    {f.answers && <p><b>On your answers:</b> {f.answers}</p>}
+                    {f.reflection && <p><b>On your notes:</b> {f.reflection}</p>}
+                    {f.date !== L.date && <button className="linkbtn" style={{ alignSelf: "flex-start" }} onClick={() => setDate(me.past[0]?.date === f.date ? null : f.date)}>Open this lesson</button>}
+                  </div>
+                ))}
+              </section>
+            )}
             <div className="acts-list">
               {L.review.length > 0 && <button className="act" onClick={() => setMode("answers")}><span className="ico">📝</span><span className="txt"><b>Workbook questions</b><small>{L.review.length} questions · answer and submit</small></span><span className={`st ${answerStatus(p) === "none" || answerStatus(p) === "started" ? "" : "ok"}`}>{{ none: "Start", started: "Keep going", submitted: "Submitted ✓", reviewed: "Reviewed ✓" }[answerStatus(p)]}</span></button>}
               <button className="act" onClick={() => setMode("verse")}><span className="ico">📖</span><span className="txt"><b>Memory verse</b><small>{L.verse_ref}</small></span><span className={`st ${p?.verse_done ? "ok" : ""}`}>{p?.verse_done ? "Learned ✓" : "Play"}</span></button>
               {hasMap(L.session_no) && <button className="act" onClick={() => setMode("map")}><span className="ico">🗺️</span><span className="txt"><b>Lesson map</b><small>The big ideas, drawn out</small></span><span className="st">Look</span></button>}
-              <button className="act" onClick={() => setMode("notes")}><span className="ico">✏️</span><span className="txt"><b>My notes</b><small>What stood out to you</small></span><span className={`st ${p?.reflection ? "ok" : ""}`}>{p?.reflection ? "Saved ✓" : "Write"}</span></button>
+              <button className="act" onClick={() => setMode("notes")}><span className="ico">✏️</span><span className="txt"><b>My notes</b><small>What stood out to you</small></span><span className={`st ${p?.reflection ? "ok" : ""}`}>{p?.reflection_reviewed_at && p.reflection_comment?.trim() ? "Reply 💬" : p?.reflection_reviewed_at ? "Read ✓" : p?.reflection ? "Saved ✓" : "Write"}</span></button>
             </div>
             <HowToVideo />
             {me.past.length > 1 && (
@@ -226,6 +240,7 @@ function Notes({ progress, toMenu, onSave }: { progress: Progress | null; toMenu
     <>
       {toMenu}
       <div><p className="eyebrow">My notes</p><h1 style={{ fontSize: "1.6rem" }}>What stood out to you this session?</h1></div>
+      {progress?.reflection_reviewed_at && <div className="panel stack" style={{ gap: 6 }}><b>{progress.reflection_comment?.trim() ? "Your teacher replied 💬" : "Your teacher has read this ✓"}</b>{progress.reflection_comment?.trim() && <p style={{ whiteSpace: "pre-wrap" }}>{progress.reflection_comment}</p>}</div>}
       <div className="field"><label htmlFor="refl">A verse, a question, something to pray about. Only your teachers see this.</label><textarea className="input" id="refl" rows={6} value={text} onChange={e => { setText(e.target.value); setSaved(false); }} /></div>
       {saved && <p className="out" style={{ fontSize: "1rem" }}>Saved ✓</p>}
       <button className="btn big" onClick={async () => { await onSave(text.trim()); setSaved(true); }}>Save my notes</button>

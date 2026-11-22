@@ -85,7 +85,14 @@ export type Progress = {
   student_id: string; date: string; verse_done: boolean; reflection: string; updated_at: string;
   /** Workbook answers, with each question's text kept alongside so later edits to the lesson don't shift them. */
   answers: Answer[]; submitted_at: string | null; reviewed_at: string | null; teacher_comment: string;
+  /** Missing until the reflection-review columns from schema.sql exist. */
+  reflection_reviewed_at?: string | null; reflection_comment?: string;
 };
+/** Where a student's reflection stands for one session: none written, waiting for the teacher, or read. */
+export function reflectionStatus(p: Progress | undefined | null): "none" | "new" | "read" {
+  if (!p?.reflection?.trim()) return "none";
+  return p.reflection_reviewed_at ? "read" : "new";
+}
 /** Where a student's workbook answers stand for one session. */
 export function answerStatus(p: Progress | undefined | null): "none" | "started" | "submitted" | "reviewed" {
   if (!p) return "none";
