@@ -18,6 +18,10 @@ type Data = {
   news?: { id: string; title: string; body: string; pinned: boolean; created_at: string }[];
 };
 
+/** Web addresses in a teacher's announcement become links parents can tap. */
+const withLinks = (text: string) => text.split(/(https?:\/\/[^\s<>"]+[^\s<>".,;:!?)])/g)
+  .map((part, i) => i % 2 ? <a key={i} href={part} target="_blank" rel="noreferrer">{part}</a> : part);
+
 export default function ParentBadge() {
   const { badge } = useParams<{ badge: string }>();
   const [d, setD] = useState<Data | null>(null), [err, setErr] = useState("");
@@ -53,7 +57,7 @@ export default function ParentBadge() {
                 {d.news.map(n => (
                   <div key={n.id} className="stack" style={{ gap: 4 }}>
                     <b>{n.pinned && <span aria-label="Pinned">📌 </span>}{n.title}</b>
-                    <p style={{ whiteSpace: "pre-wrap", margin: 0 }}>{n.body}</p>
+                    <p style={{ whiteSpace: "pre-wrap", margin: 0, overflowWrap: "anywhere" }}>{withLinks(n.body)}</p>
                     <span className="muted small">{prettyDate(n.created_at.slice(0, 10))}</span>
                   </div>
                 ))}
@@ -85,6 +89,7 @@ export default function ParentBadge() {
                   {d.progress.submitted && <span className="chip m">📝 Answers submitted</span>}
                 </div>}
                 <Link className="btn" href={`/lesson?t=${encodeURIComponent(d.token)}&b=${encodeURIComponent(s.badge)}`}>Do the lesson together</Link>
+                <Link className="btn ghost" href="/revision">🗺️ Revision maps to print at home</Link>
               </section>
             )}
             <div className="stack" style={{ gap: 8 }}>

@@ -1,7 +1,8 @@
 // Drawn maps of each session's big ideas, keyed by session number. Students open them from their lesson.
 import type { ReactNode } from "react";
 
-type Map = { title: string; body: ReactNode };
+/** extra: a further study that goes with the session, drawn under its own heading. */
+type Map = { title: string; body: ReactNode; extra?: { title: string; intro: string; body: ReactNode } };
 
 function Fig({ n, title, refs, take, children }: { n: number; title: string; refs: string; take?: ReactNode; children: ReactNode }) {
   return (
@@ -125,6 +126,60 @@ const MAPS: Record<number, Map> = {
         </Fig>
       </>
     ),
+    extra: {
+      title: "Where the enmity began",
+      intro: "Before Adam's treason, there was Satan's rebellion in heaven.",
+      body: (
+        <>
+          <Fig n={1} title="Created perfect" refs="Ezekiel 28:12–15" take="God did not make a devil. He made a perfect angel, who chose to rebel.">
+            <div className="lm-col">
+              <Box k="god" title="God">the Creator of all things, seen and unseen (Colossians 1:16)</Box>
+              <Down>created</Down>
+              <Box k="go" title="Lucifer, “the anointed cherub”">“Thou wast perfect in thy ways from the day that thou wast created, till iniquity was found in thee.”</Box>
+            </div>
+          </Fig>
+          <Fig n={2} title="Pride: the first sin" refs="Isaiah 14:13–14 · Ezekiel 28:17 · 1 Timothy 3:6" take="Satan wanted God's own place. That is where the enmity began: in the spiritual world, before man was ever tempted.">
+            <p>“Thine heart was lifted up because of thy beauty.” Five times he said <strong>“I will”</strong> against the will of God:</p>
+            <ol className="lm-time">
+              <li><span>1</span><b>“I will ascend into heaven”</b></li>
+              <li><span>2</span><b>“I will exalt my throne above the stars of God”</b></li>
+              <li><span>3</span><b>“I will sit also upon the mount of the congregation”</b></li>
+              <li><span>4</span><b>“I will ascend above the heights of the clouds”</b></li>
+              <li><span>5</span><b>“I will be like the most High”</b></li>
+            </ol>
+          </Fig>
+          <Fig n={3} title="War in heaven: cast down" refs="Isaiah 14:12, 15 · Luke 10:18 · Revelation 12:7–9 · Jude 6" take="Satan's war was against God first. His war against man came after.">
+            <div className="lm-col">
+              <Box k="god" title="Heaven">God's throne</Box>
+              <div className="lm-cut">✕ cast out, with the angels who followed him</div>
+              <Box k="bad" title="Satan and his angels">“I beheld Satan as lightning fall from heaven.” (Luke 10:18)</Box>
+              <Down>now at work in</Down>
+              <Box k="dim" title="“High places”: the spiritual world">“…against principalities, against powers, against the rulers of the darkness of this world, against spiritual wickedness in high places.” (Ephesians 6:12)</Box>
+            </div>
+          </Fig>
+          <Fig n={4} title="Why he came to the garden" refs="Genesis 3:1–6 · John 8:44 · Luke 4:6" take="Adam's treason was more than disobedience. He joined Satan's rebellion against God.">
+            <div className="lm-flow"><b className="bad">Satan hates God</b>→<b>strikes at what God loves</b>→<b className="man">man</b></div>
+            <p>He could not take God's throne, so he went after the one God made for fellowship. “He was a murderer from the beginning… he is a liar, and the father of it.” He lied to Eve, and Adam knowingly handed over his dominion (Luke 4:6).</p>
+          </Fig>
+          <Fig n={5} title="God declares the enmity, and the victory" refs="Genesis 3:15" take="The first promise of the Redeemer comes on the same day as the fall.">
+            <p className="lm-quote">“And I will put <strong>enmity</strong> between thee and the woman, and between thy seed and her seed; it shall bruise thy head, and thou shalt bruise his heel.”</p>
+            <div className="lm-two">
+              <Box k="bad" tag="The serpent" title="bruises His heel">the cross: real suffering, but not defeat</Box>
+              <Box k="go" tag="The Seed of the woman: Jesus" title="crushes his head">“that through death he might destroy him that had the power of death, that is, the devil” (Hebrews 2:14)</Box>
+            </div>
+          </Fig>
+          <Fig n={6} title="How the story ends" refs="1 John 3:8 · Colossians 2:15 · Revelation 20:10" take="We are on the winning side: “Submit yourselves therefore to God. Resist the devil, and he will flee from you.” (James 4:7)">
+            <ol className="lm-time">
+              <li><span>The beginning</span><b>Satan falls from heaven</b>pride and rebellion against God (Isaiah 14:12)</li>
+              <li><span>The garden</span><b>Man joins the rebellion</b>Adam's treason (Genesis 3)</li>
+              <li><span>The cross</span><b>Jesus defeats the devil</b>“to destroy the works of the devil” (1 John 3:8); “having spoiled principalities and powers” (Colossians 2:15)</li>
+              <li><span>The end</span><b>The devil is cast out for ever</b>“the everlasting fire, prepared for the devil and his angels” (Matthew 25:41; Revelation 20:10)</li>
+            </ol>
+          </Fig>
+          <p className="lm-note"><b>Teacher's note.</b> Isaiah 14 is spoken to the king of Babylon and Ezekiel 28 to the king of Tyre. Many Christians, as our course does, understand these passages to look past the kings to Satan, the power behind them. Luke 10:18, Revelation 12:7–9 and Jude 6 speak of his fall directly.</p>
+        </>
+      ),
+    },
   },
   3: {
     title: "The Reign of Spiritual Death",
@@ -370,15 +425,32 @@ const MAPS: Record<number, Map> = {
 
 export const hasMap = (session: number | null) => !!session && session in MAPS;
 
+/** A session's map followed by its extra study, if it has one. */
+export function SessionMap({ session }: { session: number }) {
+  const m = MAPS[session];
+  if (!m) return null;
+  return (
+    <>
+      {m.body}
+      {m.extra && (
+        <>
+          <header className="lm-extra"><span>Session {session} · Extra study</span><h2>{m.extra.title}</h2><p className="muted">{m.extra.intro}</p></header>
+          {m.extra.body}
+        </>
+      )}
+    </>
+  );
+}
+
 export function LessonMap({ session }: { session: number }) {
   const earlier = Object.keys(MAPS).map(Number).filter(n => n < session).reverse();
   return (
     <>
-      {MAPS[session]?.body}
+      <SessionMap session={session} />
       {earlier.map(n => (
         <details key={n} className="panel lm-back">
           <summary><b>Look back: Session {n}</b> · {MAPS[n].title}</summary>
-          <div className="lm-backbody">{MAPS[n].body}</div>
+          <div className="lm-backbody"><SessionMap session={n} /></div>
         </details>
       ))}
     </>

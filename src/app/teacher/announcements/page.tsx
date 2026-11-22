@@ -87,6 +87,9 @@ export default function Announcements() {
               <input className="input" id="a-ends" type="date" min={t.today} value={draft.ends_on} onChange={e => setDraft({ ...draft, ends_on: e.target.value })} /></div>
           </div>
           <label className="small" style={{ display: "flex", gap: 8, alignItems: "center" }}><input type="checkbox" checked={draft.pinned} onChange={e => setDraft({ ...draft, pinned: e.target.checked })} /> Pin to the top. Use this for urgent notices.</label>
+          <button type="button" className="btn ghost sm" style={{ alignSelf: "flex-start" }}
+            onClick={() => setDraft({ ...draft, body: `${draft.body.trimEnd()}${draft.body.trim() ? "\n\n" : ""}Print the revision maps for your child: ${location.origin}/revision` })}>
+            Add the revision maps link</button>
           <p className="muted small" style={{ margin: 0 }}>Anyone with a family's badge link can read their announcements. Don't include private details about a child.</p>
           <div className="chips"><button className="btn" disabled={busy}>{busy ? "Saving…" : editId ? "Save changes" : "Post it"}</button><button type="button" className="btn ghost" onClick={() => { setDraft(null); setEditId(null); }}>Cancel</button></div>
         </form>
