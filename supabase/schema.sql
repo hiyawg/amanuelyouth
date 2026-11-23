@@ -267,8 +267,8 @@ create table if not exists absences (
   primary key (student_id, date)
 );
 alter table absences enable row level security;
-drop policy if exists "teachers manage absences" on absences;
-create policy "teachers manage absences" on absences for all to authenticated
+drop policy if exists teachers_manage_absences on absences;
+create policy teachers_manage_absences on absences for all to authenticated
   using (is_staff() and sees_student(student_id)) with check (is_staff() and sees_student(student_id));
 
 -- Live updates for the teacher screens.
