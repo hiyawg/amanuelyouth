@@ -24,10 +24,34 @@ const ICONS: Record<string, string> = {
 };
 const Icon = ({ name }: { name: string }) => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={ICONS[name]} /></svg>;
 
-const TABS = [
-  ["/teacher", "Today", "today"], ["/teacher/door", "Door display", "door"], ["/teacher/kiosk", "Kiosk", "kiosk"], ["/teacher/history", "History", "history"],
-  ["/teacher/schedule", "Schedule", "schedule"], ["/teacher/lessons", "Lessons", "lessons"], ["/teacher/students", "Students & badges", "students"], ["/teacher/agreements", "Agreements", "agreements"], ["/teacher/announcements", "Announcements", "announcements"], ["/teacher/messages", "Parent messages", "messages"], ["/teacher/absences", "Absences", "absences"], ["/teacher/reminders", "Reminders", "reminders"],
+/** The pages, grouped down the side menu. */
+const NAV: [string, [string, string, string][]][] = [
+  ["Class day", [["/teacher", "Today", "today"], ["/teacher/door", "Door display", "door"], ["/teacher/kiosk", "Kiosk", "kiosk"], ["/teacher/history", "History", "history"], ["/teacher/schedule", "Schedule", "schedule"]]],
+  ["Teaching", [["/teacher/lessons", "Lessons", "lessons"], ["/teacher/students", "Students & badges", "students"]]],
+  ["Families", [["/teacher/agreements", "Agreements", "agreements"], ["/teacher/announcements", "Announcements", "announcements"], ["/teacher/messages", "Parent messages", "messages"], ["/teacher/absences", "Absences", "absences"], ["/teacher/reminders", "Reminders", "reminders"]]],
 ];
+const ADMIN_NAV: [string, [string, string, string][]] = ["Admin", [["/teacher/teachers", "Teachers", "teachers"]]];
+
+/** The side menu. On a phone it folds into a Menu button that opens the same list. */
+function SideNav({ admin, path }: { admin: boolean; path: string }) {
+  const [open, setOpen] = useState(false);
+  useEffect(() => setOpen(false), [path]);
+  const groups = admin ? [...NAV, ADMIN_NAV] : NAV;
+  const here = groups.flatMap(([, links]) => links).find(([href]) => href === path)?.[1];
+  return (
+    <nav className={`ap-side noprint ${open ? "open" : ""}`} aria-label="Pages">
+      <button className="ap-menu" aria-expanded={open} onClick={() => setOpen(o => !o)}><span aria-hidden="true">☰</span> Menu{here && <small>{here}</small>}</button>
+      <div className="ap-side-list">
+        {groups.map(([title, links]) => (
+          <div key={title} className="ap-side-group">
+            <h4>{title}</h4>
+            {links.map(([href, label, icon]) => <Link key={href} href={href} aria-current={path === href ? "page" : undefined}><i><Icon name={icon} /></i>{label}</Link>)}
+          </div>
+        ))}
+      </div>
+    </nav>
+  );
+}
 
 /** The navy bar: brand, student lookup, today's counts and the account. */
 function TopBar({ email }: { email: string }) {
@@ -108,10 +132,10 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
     <TeacherData role={role}>
       <div className="app">
         <TopBar email={email} />
-        <nav className="ap-tabs noprint" aria-label="Views">
-          {(role === "admin" ? [...TABS, ["/teacher/teachers", "Teachers", "teachers"]] : TABS).map(([href, label, icon]) => <Link key={href} href={href} aria-current={path === href ? "page" : undefined}><i><Icon name={icon} /></i>{label}</Link>)}
-        </nav>
-        <main className="ap-body">{children}</main>
+        <div className="ap-shell">
+          <SideNav admin={role === "admin"} path={path} />
+          <main className="ap-body">{children}</main>
+        </div>
         <BottomBar />
       </div>
     </TeacherData>
