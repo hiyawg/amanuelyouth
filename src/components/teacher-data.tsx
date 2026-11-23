@@ -4,14 +4,14 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { sb } from "@/lib/supabase-browser";
 import {
   CONSENT_FORM, addDays, dayKey, newBadge, pickupCode, randomCode, streak as streakOf,
-  type Absence, type AbsenceReason, type Announcement, type Checkin, type Consent, type Group, type NoteKind, type StudentNote, type Lesson, type Method, type ParentMessage, type Progress, type Session, type Student, type StaffRole, type Topic,
+  type Absence, type AbsenceReason, type Announcement, type Reminder, type Checkin, type Consent, type Group, type NoteKind, type StudentNote, type Lesson, type Method, type ParentMessage, type Progress, type Session, type Student, type StaffRole, type Topic,
 } from "@/lib/shared";
 
 /** A teacher an admin can give students to. */
 export type StaffMember = { id: string; name: string; email: string };
 
-type Data = { students: Student[]; checkins: Checkin[]; sessions: Session[]; lessons: Lesson[]; progress: Progress[]; consents: Consent[]; consentsReady: boolean; notes: StudentNote[]; notesReady: boolean; messages: ParentMessage[]; messagesReady: boolean; announcements: Announcement[]; announcementsReady: boolean; reflectionsReady: boolean; absences: Absence[]; absencesReady: boolean };
-const EMPTY: Data = { students: [], checkins: [], sessions: [], lessons: [], progress: [], consents: [], consentsReady: true, notes: [], notesReady: true, messages: [], messagesReady: true, announcements: [], announcementsReady: true, reflectionsReady: true, absences: [], absencesReady: true };
+type Data = { students: Student[]; checkins: Checkin[]; sessions: Session[]; lessons: Lesson[]; progress: Progress[]; consents: Consent[]; consentsReady: boolean; notes: StudentNote[]; notesReady: boolean; messages: ParentMessage[]; messagesReady: boolean; announcements: Announcement[]; announcementsReady: boolean; reflectionsReady: boolean; absences: Absence[]; absencesReady: boolean; reminders: Reminder[]; remindersReady: boolean };
+const EMPTY: Data = { students: [], checkins: [], sessions: [], lessons: [], progress: [], consents: [], consentsReady: true, notes: [], notesReady: true, messages: [], messagesReady: true, announcements: [], announcementsReady: true, reflectionsReady: true, absences: [], absencesReady: true, reminders: [], remindersReady: true };
 
 function useTeacherDataValue(role: StaffRole) {
   const [d, setD] = useState<Data>(EMPTY);
@@ -22,7 +22,7 @@ function useTeacherDataValue(role: StaffRole) {
 
   const load = useCallback(async () => {
     const db = sb(), since = addDays(dayKey(), -180);
-    const [s, c, se, l, p, cs, n, m, an, rr, ab] = await Promise.all([
+    const [s, c, se, l, p, cs, n, m, an, rr, ab, rm] = await Promise.all([
       db.from("students").select("*").order("name"),
       db.from("checkins").select("*").gte("date", since).order("at", { ascending: false }).limit(5000),
       db.from("sessions").select("*").order("date", { ascending: false }).limit(200),
@@ -34,12 +34,13 @@ function useTeacherDataValue(role: StaffRole) {
       db.from("announcements").select("*").order("created_at", { ascending: false }).limit(200),
       db.from("progress").select("reflection_reviewed_at").limit(1),
       db.from("absences").select("*").gte("date", addDays(dayKey(), -120)).limit(5000),
+      db.from("reminders").select("*").gte("date", addDays(dayKey(), -120)).limit(5000),
     ]);
     const e = s.error || c.error || se.error || l.error || p.error;
     if (e) { setError(e.message); return; }
     setError("");
     // Agreements need the consents table from schema.sql. Until it exists, everything else still works.
-    setD({ students: s.data as Student[], checkins: c.data as Checkin[], sessions: se.data as Session[], lessons: l.data as Lesson[], progress: p.data as Progress[], consents: (cs.data || []) as Consent[], consentsReady: !cs.error, notes: (n.data || []) as StudentNote[], notesReady: !n.error, messages: (m.data || []) as ParentMessage[], messagesReady: !m.error, announcements: (an.data || []) as Announcement[], announcementsReady: !an.error, reflectionsReady: !rr.error, absences: (ab.data || []) as Absence[], absencesReady: !ab.error });
+    setD({ students: s.data as Student[], checkins: c.data as Checkin[], sessions: se.data as Session[], lessons: l.data as Lesson[], progress: p.data as Progress[], consents: (cs.data || []) as Consent[], consentsReady: !cs.error, notes: (n.data || []) as StudentNote[], notesReady: !n.error, messages: (m.data || []) as ParentMessage[], messagesReady: !m.error, announcements: (an.data || []) as Announcement[], announcementsReady: !an.error, reflectionsReady: !rr.error, absences: (ab.data || []) as Absence[], absencesReady: !ab.error, reminders: (rm.data || []) as Reminder[], remindersReady: !rm.error });
     setLoaded(true);
   }, []);
 
@@ -123,7 +124,8 @@ function useTeacherDataValue(role: StaffRole) {
     },
     async updateStudent(id: string, patch: Partial<Student>) {
       const r = await sb().from("students").update(patch).eq("id", id);
-      if (r.error) throw new Error(r.error.message); reload();
+      if (r.error) throw new Error(/student_phone/.test(r.error.message) ? "Student phones aren't turned on yet. Run the latest supabase/schema.sql in Supabase." : r.error.message);
+      reload();
     },
     /** Give a student a new badge code. The old badge, its links and phones signed in with it stop working. */
     async replaceBadge(id: string) {
@@ -162,6 +164,12 @@ function useTeacherDataValue(role: StaffRole) {
     async recordAbsenceReply(id: string, date: string, reason: AbsenceReason | null, reply: string) {
       const r = await sb().from("absences").upsert({ student_id: id, date, reason, reply: reply.slice(0, 1000), replied_at: reason || reply.trim() ? new Date().toISOString() : null }, { onConflict: "student_id,date" });
       if (r.error) throw new Error(r.error.message); reload();
+    },
+    /** Log a homework reminder texted to a student's parent or to the student, or take it back. */
+    async markReminded(id: string, date: string, to: "parent" | "student", on = true) {
+      const r = await sb().from("reminders").upsert({ student_id: id, date, [`${to}_at`]: on ? new Date().toISOString() : null }, { onConflict: "student_id,date" });
+      if (r.error) throw new Error(/reminders/.test(r.error.message) ? "Reminders aren't turned on yet. Run the latest supabase/schema.sql in Supabase." : r.error.message);
+      reload();
     },
     async saveAnnouncement(a: Pick<Announcement, "title" | "body" | "grp" | "teacher_id" | "pinned" | "ends_on">, id?: string) {
       const { data: u } = await sb().auth.getUser();

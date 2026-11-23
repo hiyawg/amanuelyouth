@@ -256,6 +256,7 @@ export default function Workspace() {
                     <dt>Name</dt><dd>{parent || "Not given yet (filled in when they sign the agreement)"}</dd>
                     <dt>Phone</dt><dd>{s.parent_phone || consent?.parent_phone || "–"}</dd>
                     <dt>Email</dt><dd>{s.parent_email || "–"}</dd>
+                    <dt>{first}'s phone</dt><dd>{s.student_phone || "–"}</dd>
                     <dt>Badge link</dt><dd><a href={`/b/${s.badge}`} target="_blank" rel="noreferrer">/b/{s.badge}</a></dd>
                   </dl>
                   <div className="ws-btns">

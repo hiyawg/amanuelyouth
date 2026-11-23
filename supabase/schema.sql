@@ -271,11 +271,27 @@ drop policy if exists teachers_manage_absences on absences;
 create policy teachers_manage_absences on absences for all to authenticated
   using (is_staff() and sees_student(student_id)) with check (is_staff() and sees_student(student_id));
 
+-- A student's own phone, for homework reminders sent to them as well as to their parent.
+alter table students add column if not exists student_phone text not null default '';
+
+-- Homework reminders: when a teacher texted the parent, and the student, about unfinished work for a lesson.
+create table if not exists reminders (
+  student_id uuid not null references students(id) on delete cascade,
+  date date not null,
+  parent_at timestamptz,
+  student_at timestamptz,
+  primary key (student_id, date)
+);
+alter table reminders enable row level security;
+drop policy if exists teachers_manage_reminders on reminders;
+create policy teachers_manage_reminders on reminders for all to authenticated
+  using (is_staff() and sees_student(student_id)) with check (is_staff() and sees_student(student_id));
+
 -- Live updates for the teacher screens.
 do $$
 declare t text;
 begin
-  foreach t in array array['students','sessions','checkins','shepherd_lessons','progress','shepherd_schedule','consents','student_notes','parent_messages','announcements','absences'] loop
+  foreach t in array array['students','sessions','checkins','shepherd_lessons','progress','shepherd_schedule','consents','student_notes','parent_messages','announcements','absences','reminders'] loop
     if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = t) then
       execute format('alter publication supabase_realtime add table %I', t);
     end if;

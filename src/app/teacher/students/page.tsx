@@ -140,7 +140,7 @@ function StudentTable({ arm, setArm, run, onShare, onEdit, onSave }: {
                 <td><Link className="nm-link" href={`/teacher/students/${s.id}`}><b>{s.name}</b></Link>{s.sample && <> <span className="chip m">Sample</span></>}{s.visitor && <> <span className="chip visit">Visitor</span></>}{t.present.has(s.id) && <> <span className="chip">Here today</span></>}</td>
                 <td><span className="chip">{GROUPS[s.grp].label} · {GROUPS[s.grp].grades}</span></td>
                 <td><code>{s.badge}</code></td>
-                <td className="small">{s.parent_phone || s.parent_email ? <>{s.parent_phone && <div>{s.parent_phone}</div>}{s.parent_email && <div className="muted">{s.parent_email}</div>}</> : <button className="linkbtn" onClick={() => onEdit(s)}>Add contact</button>}</td>
+                <td className="small">{s.parent_phone || s.parent_email ? <>{s.parent_phone && <div>{s.parent_phone}</div>}{s.parent_email && <div className="muted">{s.parent_email}</div>}{s.student_phone && <div className="muted">Student: {s.student_phone}</div>}</> : <button className="linkbtn" onClick={() => onEdit(s)}>Add contact</button>}</td>
                 <td className="note">{s.note && <>⚠ {s.note}</>}</td>
                 {isAdmin && <td className="small">{teacherOf(t.staff, s) ? teacherLabel(t.staff, s) : <button className="linkbtn" onClick={() => onEdit(s)}>Assign</button>}</td>}
                 <td className="num">{visits}</td>
@@ -208,7 +208,7 @@ function ShareBox({ s, onClose, onSave, onEdit }: { s: Student; onClose: () => v
 /** Change a student's details and their parent's contact info. */
 function EditBox({ s, onClose, onDone }: { s: Student; onClose: () => void; onDone: (msg: string) => void }) {
   const t = useTeacher();
-  const [f, setF] = useState({ name: s.name, grp: s.grp, note: s.note, phone: s.parent_phone || "", email: s.parent_email || "", teacher: s.teacher_id || "" });
+  const [f, setF] = useState({ name: s.name, grp: s.grp, note: s.note, phone: s.parent_phone || "", email: s.parent_email || "", kid: s.student_phone || "", teacher: s.teacher_id || "" });
   const isAdmin = t.role === "admin";
   const [err, setErr] = useState(""), [busy, setBusy] = useState(false), [armNew, setArmNew] = useState(false);
   const set = (p: Partial<typeof f>) => { setF({ ...f, ...p }); setErr(""); };
@@ -221,13 +221,16 @@ function EditBox({ s, onClose, onDone }: { s: Student; onClose: () => void; onDo
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    const name = f.name.trim(), phone = cleanPhone(f.phone), email = cleanEmail(f.email);
+    const name = f.name.trim(), phone = cleanPhone(f.phone), email = cleanEmail(f.email), kid = cleanPhone(f.kid);
     if (!name) return setErr("Add the student's name.");
     if (f.phone.trim() && !phone) return setErr("That phone number doesn't look right. Check it, or leave it blank.");
     if (f.email.trim() && !email) return setErr("That email address doesn't look right. Check it, or leave it blank.");
+    if (f.kid.trim() && !kid) return setErr("The student's phone number doesn't look right. Check it, or leave it blank.");
     if (isAdmin && !f.teacher) return setErr("Pick the teacher this student belongs to.");
     setBusy(true);
-    try { await t.actions.updateStudent(s.id, { name, grp: f.grp, note: f.note.trim(), parent_phone: phone, parent_email: email, ...(isAdmin ? { teacher_id: f.teacher } : {}) }); onDone(`Saved ${name}.`); }
+    try { await t.actions.updateStudent(s.id, { name, grp: f.grp, note: f.note.trim(), parent_phone: phone, parent_email: email,
+      // Only send the student's phone once the column exists, or when the teacher typed one.
+      ...(s.student_phone !== undefined || kid ? { student_phone: kid } : {}), ...(isAdmin ? { teacher_id: f.teacher } : {}) }); onDone(`Saved ${name}.`); }
     catch (e: any) { setErr(e.message); setBusy(false); }
   }
 
@@ -240,6 +243,7 @@ function EditBox({ s, onClose, onDone }: { s: Student; onClose: () => void; onDo
         <div className="field wide"><label htmlFor="e-nt">Allergy or medical note</label><input className="input" id="e-nt" maxLength={80} placeholder="Only teachers see this" value={f.note} onChange={e => set({ note: e.target.value })} /></div>
         <div className="field"><label htmlFor="e-ph">Parent's cell phone</label><input className="input" id="e-ph" type="tel" autoComplete="off" maxLength={20} value={f.phone} onChange={e => set({ phone: e.target.value })} /></div>
         <div className="field"><label htmlFor="e-em">Parent's email</label><input className="input" id="e-em" type="email" autoComplete="off" maxLength={120} value={f.email} onChange={e => set({ email: e.target.value })} /></div>
+        <div className="field"><label htmlFor="e-kp">Student's own phone <span className="muted">(optional)</span></label><input className="input" id="e-kp" type="tel" autoComplete="off" maxLength={20} placeholder="For homework reminders" value={f.kid} onChange={e => set({ kid: e.target.value })} /></div>
         {isAdmin && <div className="field"><label htmlFor="e-tc">Teacher</label><select className="input" id="e-tc" value={f.teacher} onChange={e => set({ teacher: e.target.value })}>
           {!teacherOf(t.staff, s) && <option value="">Pick a teacher</option>}{t.staff.map(x => <option key={x.id} value={x.id}>{x.name || loginName(x.email)}</option>)}
         </select></div>}

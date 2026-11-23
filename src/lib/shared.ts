@@ -10,7 +10,11 @@ export type Student = {
   teacher_id: string | null;
   /** False when the parent asked not to get the weekly lesson text. Missing before the schema update. */
   lesson_texts?: boolean;
+  /** The student's own phone, for homework reminders. Missing before the schema update. */
+  student_phone?: string;
 };
+/** A homework reminder for one lesson: when the parent and the student were texted. */
+export type Reminder = { student_id: string; date: string; parent_at: string | null; student_at: string | null };
 /** A weekly lesson message logged as sent to a child's parent. */
 export type ParentMessage = { id: string; student_id: string; lesson_date: string | null; announcement_id: string | null; badge: string | null; channel: "text" | "email" | "copy"; sent_by: string | null; sent_at: string };
 /** What a parent message is about: a Sunday's lesson, an announcement, or the child's badge link. */

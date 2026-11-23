@@ -18,6 +18,7 @@ const ICONS: Record<string, string> = {
   agreements: "M14 2.5H5v19h14V7.5ZM14 2.5v5h5M9 14.5l2 2 4-4",
   messages: "M4 4.5h16v11H9l-5 4z M8 9h8M8 12h5",
   absences: "M3 4.5h18V21H3zM3 9.5h18M8 2.5v4M16 2.5v4M9.5 13l5 5M14.5 13l-5 5",
+  reminders: "M12 21a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2zM18 16V11a6 6 0 0 0-12 0v5l-2 2h16z",
   announcements: "M4 10v4h3l7 4.5v-13L7 10zM17.5 9.5a3.5 3.5 0 0 1 0 5M20 7a7 7 0 0 1 0 10",
   teachers: "M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5",
 };
@@ -25,7 +26,7 @@ const Icon = ({ name }: { name: string }) => <svg width="12" height="12" viewBox
 
 const TABS = [
   ["/teacher", "Today", "today"], ["/teacher/door", "Door display", "door"], ["/teacher/kiosk", "Kiosk", "kiosk"], ["/teacher/history", "History", "history"],
-  ["/teacher/schedule", "Schedule", "schedule"], ["/teacher/lessons", "Lessons", "lessons"], ["/teacher/students", "Students & badges", "students"], ["/teacher/agreements", "Agreements", "agreements"], ["/teacher/announcements", "Announcements", "announcements"], ["/teacher/messages", "Parent messages", "messages"], ["/teacher/absences", "Absences", "absences"],
+  ["/teacher/schedule", "Schedule", "schedule"], ["/teacher/lessons", "Lessons", "lessons"], ["/teacher/students", "Students & badges", "students"], ["/teacher/agreements", "Agreements", "agreements"], ["/teacher/announcements", "Announcements", "announcements"], ["/teacher/messages", "Parent messages", "messages"], ["/teacher/absences", "Absences", "absences"], ["/teacher/reminders", "Reminders", "reminders"],
 ];
 
 /** The navy bar: brand, student lookup, today's counts and the account. */

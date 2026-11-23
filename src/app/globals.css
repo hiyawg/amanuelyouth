@@ -852,3 +852,4 @@ footer em { font-family: var(--f-display); font-style: normal; font-weight: 600;
 .absence { border: 2px solid var(--sun) }
 .absence.done-card { border-color: var(--ok) }
 .ab-record { margin-top: 6px; width: auto; max-width: 100%; padding: 4px 8px; font-size: .8rem }
+.rm-preview { white-space: pre-wrap; margin: 0; background: var(--bg); box-shadow: none; font-size: .85rem }
