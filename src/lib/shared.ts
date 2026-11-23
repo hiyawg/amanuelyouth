@@ -15,6 +15,13 @@ export type Student = {
 export type ParentMessage = { id: string; student_id: string; lesson_date: string | null; announcement_id: string | null; badge: string | null; channel: "text" | "email" | "copy"; sent_by: string | null; sent_at: string };
 /** What a parent message is about: a Sunday's lesson, an announcement, or the child's badge link. */
 export type Topic = { lesson_date: string } | { announcement_id: string } | { badge: true };
+/** A child who missed a class day: when the parent was asked about it, and their reply. */
+export type Absence = {
+  student_id: string; date: string; channel: "text" | "email" | "copy" | null; notified_by: string | null; notified_at: string | null;
+  reason: AbsenceReason | null; reply: string; replied_at: string | null;
+};
+export const ABSENCE_REASONS = { sick: "Sick", travel: "Travelling", family: "Family reasons", other: "Something else" } as const;
+export type AbsenceReason = keyof typeof ABSENCE_REASONS;
 /** A notice on parents' badge pages. No teacher_id means every family; no grp means every group. */
 export type Announcement = {
   id: string; title: string; body: string; grp: Group | null; teacher_id: string | null;

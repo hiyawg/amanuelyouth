@@ -847,3 +847,8 @@ footer em { font-family: var(--f-display); font-style: normal; font-weight: 600;
 .fb-item { display: flex; flex-direction: column; gap: 4px; padding-top: 10px; border-top: 1px solid var(--line) }
 .fb-item:first-of-type { padding-top: 0; border-top: 0 }
 .fb-item p { white-space: pre-wrap }
+
+/* absences: the parent's reply card and the teacher's record-a-reply picker */
+.absence { border: 2px solid var(--sun) }
+.absence.done-card { border-color: var(--ok) }
+.ab-record { margin-top: 6px; width: auto; max-width: 100%; padding: 4px 8px; font-size: .8rem }

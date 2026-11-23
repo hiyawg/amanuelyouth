@@ -253,11 +253,29 @@ alter table parent_messages add constraint parent_messages_one_per_topic unique 
 alter table parent_messages drop constraint if exists parent_messages_one_topic;
 alter table parent_messages add constraint parent_messages_one_topic check (num_nonnulls(lesson_date, announcement_id, badge) = 1);
 
+-- Absences: a child who missed a class day, when their parent was asked about it, and the parent's reply.
+-- Teachers write the row when they text the parent; parents reply from the badge page (through the server).
+create table if not exists absences (
+  student_id uuid not null references students(id) on delete cascade,
+  date date not null,
+  channel text check (channel in ('text', 'email', 'copy')),
+  notified_by uuid references auth.users(id) on delete set null default auth.uid(),
+  notified_at timestamptz,
+  reason text check (reason in ('sick', 'travel', 'family', 'other')),
+  reply text not null default '' check (char_length(reply) <= 1000),
+  replied_at timestamptz,
+  primary key (student_id, date)
+);
+alter table absences enable row level security;
+drop policy if exists "teachers manage absences" on absences;
+create policy "teachers manage absences" on absences for all to authenticated
+  using (is_staff() and sees_student(student_id)) with check (is_staff() and sees_student(student_id));
+
 -- Live updates for the teacher screens.
 do $$
 declare t text;
 begin
-  foreach t in array array['students','sessions','checkins','shepherd_lessons','progress','shepherd_schedule','consents','student_notes','parent_messages','announcements'] loop
+  foreach t in array array['students','sessions','checkins','shepherd_lessons','progress','shepherd_schedule','consents','student_notes','parent_messages','announcements','absences'] loop
     if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = t) then
       execute format('alter publication supabase_realtime add table %I', t);
     end if;
