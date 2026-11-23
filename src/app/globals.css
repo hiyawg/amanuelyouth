@@ -853,3 +853,110 @@ footer em { font-family: var(--f-display); font-style: normal; font-weight: 600;
 .absence.done-card { border-color: var(--ok) }
 .ab-record { margin-top: 6px; width: auto; max-width: 100%; padding: 4px 8px; font-size: .8rem }
 .rm-preview { white-space: pre-wrap; margin: 0; background: var(--bg); box-shadow: none; font-size: .85rem }
+
+/* Home page: a sunny hillside hero (a night sky in dark mode), three doors in, and what students can do.
+   Everything is drawn with vector shapes so it stays sharp on any screen. */
+.home {
+  --sky-a: #CFEFFA; --sky-b: #FFF3D6; --h1a: #8ED8A6; --h1b: #5DBF84; --h2a: #4FB277; --h2b: #2F9466;
+  --wool: #FFFFFF; --wool-edge: #E4EBF2; --sheep-ink: #2A3346; --cheek: #F7A6A0; --cloud: #FFFFFF; --path: #F6E6B8;
+  --sunc: #FFC93C; --glow-in: rgba(255, 214, 90, .55); --glow-out: rgba(255, 214, 90, 0);
+  --c-teal: #12A39A; --c-sun: #F5B82E; --c-coral: #F2654E; --c-violet: #7B5CD6; --c-sky: #2F9BE0;
+  --art-a: #9FDDF5; --art-b: #E6F6FB; --hl: color-mix(in srgb, var(--sun) 55%, transparent);
+  overflow-x: hidden; padding-bottom: 40px
+}
+@media (prefers-color-scheme: dark) {
+  .home {
+    --sky-a: #0F1F3D; --sky-b: #1C2B4B; --h1a: #1F5A49; --h1b: #18473B; --h2a: #1A4D3C; --h2b: #123A2E;
+    --wool: #E9EEF5; --wool-edge: #B7C3D3; --sheep-ink: #121826; --cloud: #2B3B5C; --path: #3B4A5E;
+    --sunc: #FFE7A6; --glow-in: rgba(255, 231, 166, .25); --glow-out: rgba(255, 231, 166, 0);
+    --art-a: #0B1730; --art-b: #233A63; --hl: color-mix(in srgb, var(--sun) 28%, transparent)
+  }
+}
+.home-in { width: min(100%, 1140px); margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)) }
+.home-hero { background: linear-gradient(180deg, var(--sky-a), var(--sky-b)); padding-bottom: 72px; position: relative }
+.home-hero::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 48px; background: var(--bg); border-radius: 48px 48px 0 0 }
+.home-top { display: flex; align-items: center; gap: 12px; padding-block: 18px 6px }
+.home-top .brand b { font-size: 1.3rem }
+.home-tlink { font-weight: 700; color: var(--ink); text-decoration: none; padding: 9px 16px; border-radius: 999px; background: color-mix(in srgb, var(--surface) 70%, transparent) }
+.home-tlink:hover { background: var(--surface) }
+.home-hero-grid { display: grid; grid-template-columns: 1.05fr 1fr; align-items: center; gap: 24px; padding-top: 18px }
+.home-hello { display: flex; flex-direction: column; gap: 16px; min-width: 0 }
+.home-eyebrow { align-self: flex-start; font: 800 .8rem var(--f-display); letter-spacing: .12em; text-transform: uppercase; color: var(--accent-text); background: color-mix(in srgb, var(--surface) 75%, transparent); padding: 6px 14px; border-radius: 999px }
+.home-hello h1 { font-size: clamp(2.3rem, 5.4vw, 3.9rem); line-height: 1.05; letter-spacing: -.01em }
+.home-hello h1 span { color: var(--accent); background: linear-gradient(transparent 62%, var(--hl) 62%, var(--hl) 92%, transparent 92%) }
+.home-hello p { font-size: 1.2rem; color: var(--muted); max-width: 30ch }
+.home-ctas { display: flex; flex-wrap: wrap; gap: 12px }
+.home-ctas .btn.big { width: auto; box-shadow: 0 8px 20px color-mix(in srgb, var(--accent) 28%, transparent); transition: transform .15s }
+.home-ctas .btn.big.ghost { box-shadow: 0 6px 16px rgba(21, 35, 58, .08) }
+.home-ctas .btn.big:hover { transform: translateY(-2px) }
+.home-art { width: 100%; height: auto; display: block; overflow: visible }
+
+/* drawing */
+.ha-wool circle { fill: var(--wool); stroke: var(--wool-edge); stroke-width: 1.5 }
+.ha-wool-top { fill: var(--wool) }
+.ha-ink { fill: var(--sheep-ink) }
+.ha-cheek { fill: var(--cheek); opacity: .8 }
+.ha-shadow { fill: rgba(0, 40, 20, .16) }
+.ha-cloud { fill: var(--cloud); animation: ha-drift 18s ease-in-out infinite alternate }
+.ha-stem { fill: #3E9E5F }
+.ha-path { fill: none; stroke: var(--path); stroke-width: 26; stroke-linecap: round; opacity: .85 }
+.ha-glow-in { stop-color: var(--glow-in) } .ha-glow-out { stop-color: var(--glow-out) }
+.ha-h1a { stop-color: var(--h1a) } .ha-h1b { stop-color: var(--h1b) } .ha-h2a { stop-color: var(--h2a) } .ha-h2b { stop-color: var(--h2b) }
+.ha-sun { transform: translate(440px, 92px); fill: var(--sunc) }
+.ha-rays { animation: ha-spin 40s linear infinite; transform-origin: 0 0 }
+.ha-moon, .ha-stars { display: none }
+.ha-moon circle { fill: var(--sunc) }
+.ha-sky-a { stop-color: var(--art-a) } .ha-sky-b { stop-color: var(--art-b) }
+.ha-edge { fill: none; stroke: rgba(255, 255, 255, .75); stroke-width: 3 }
+@media (prefers-color-scheme: dark) { .ha-edge { stroke: rgba(255, 255, 255, .14) } }
+.home-art { filter: drop-shadow(0 18px 30px rgba(21, 35, 58, .16)) }
+.ha-stars circle { fill: #FFF6D8; animation: ha-twinkle 3s ease-in-out infinite alternate }
+.ha-bob { animation: ha-bob 3.2s ease-in-out infinite }
+@media (prefers-color-scheme: dark) { .ha-sun { display: none } .ha-moon, .ha-stars { display: inline } }
+@keyframes ha-drift { from { transform: translateX(-14px) } to { transform: translateX(18px) } }
+@keyframes ha-spin { to { transform: rotate(360deg) } }
+@keyframes ha-bob { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-3px) } }
+@keyframes ha-twinkle { from { opacity: .35 } to { opacity: 1 } }
+
+/* the three doors in */
+.home-main { position: relative; margin-top: -40px; display: flex; flex-direction: column; gap: 34px }
+.home-cards { display: grid; grid-template-columns: 1.25fr 1fr 1fr; gap: 18px; align-items: stretch }
+.home-card { background: var(--surface); border-radius: 26px; padding: 24px; box-shadow: 0 10px 30px rgba(21, 35, 58, .08); display: flex; flex-direction: column; gap: 12px; min-width: 0; border-top: 8px solid var(--c, var(--accent)); scroll-margin-top: 16px }
+.home-card h2 { font-size: 1.5rem; font-weight: 900 }
+.home-card.students { --c: var(--c-teal) } .home-card.parents { --c: var(--c-sun) } .home-card.teachers { --c: var(--c-violet) }
+.home-card > .btn:last-child, .home-links { margin-top: auto }
+.home-links { display: flex; flex-direction: column; gap: 8px }
+.home-tag { align-self: flex-start; font: 800 .75rem var(--f-display); letter-spacing: .1em; text-transform: uppercase; padding: 5px 12px; border-radius: 999px; color: var(--ink); background: color-mix(in srgb, var(--c) 22%, var(--surface)) }
+
+/* what students can do */
+.home-acts h2 { font-size: 1.6rem; font-weight: 900; text-align: center; margin-bottom: 16px }
+.home-acts ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px }
+.home-acts li { background: var(--surface); border-radius: 22px; padding: 20px 18px; display: flex; flex-direction: column; gap: 6px; box-shadow: var(--shadow); min-width: 0 }
+.home-acts li b { font: 900 1.1rem var(--f-display) }
+.home-acts li > span:last-child { color: var(--muted); font-size: .92rem }
+.home-ico { width: 58px; height: 58px; border-radius: 18px; display: grid; place-items: center; color: #fff; background: var(--c); margin-bottom: 6px; box-shadow: 0 6px 14px color-mix(in srgb, var(--c) 35%, transparent); transform: rotate(-4deg) }
+.ha-questions { --c: var(--c-teal) } .ha-verse { --c: var(--c-coral) } .ha-map { --c: var(--c-sky) } .ha-badges { --c: var(--c-violet) }
+.home-acts li:nth-child(even) .home-ico { transform: rotate(4deg) }
+
+/* verse band */
+.home-verse { border-radius: 28px; padding: 30px 28px; text-align: center; display: flex; flex-direction: column; gap: 18px; align-items: center;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--c-teal) 16%, var(--surface)), color-mix(in srgb, var(--c-sun) 20%, var(--surface))) }
+.home-quote { font: 900 clamp(1.5rem, 3.4vw, 2.2rem)/1.2 var(--f-display); text-wrap: balance }
+.home-quote span { display: block; margin-top: 6px; font-size: .95rem; letter-spacing: .1em; text-transform: uppercase; color: var(--accent-text) }
+.home-vow { max-width: 62ch; color: var(--muted); font-style: italic; border-top: 2px solid color-mix(in srgb, var(--c-sun) 55%, transparent); padding-top: 16px }
+.home-vow b { display: block; font: 800 .75rem var(--f-display); font-style: normal; letter-spacing: .14em; text-transform: uppercase; color: var(--pre-ink); margin-bottom: 6px }
+
+@media (max-width: 900px) {
+  .home-hero-grid { grid-template-columns: 1fr; text-align: left }
+  .home-art { max-width: 520px; margin: 0 auto }
+  .home-cards { grid-template-columns: 1fr }
+  .home-acts ul { grid-template-columns: 1fr 1fr }
+}
+@media (max-width: 420px) {
+  .home-acts ul { grid-template-columns: 1fr }
+  .home-acts li { display: grid; grid-template-columns: 58px 1fr; column-gap: 14px; row-gap: 2px; align-items: center; padding: 14px 16px }
+  .home-acts li .home-ico { grid-row: span 2; margin: 0 }
+  .home-acts li > span:last-child { grid-column: 2 }
+  .home-ctas .btn.big { flex: 1 1 100% }
+  .home-top .brand small { display: none }
+}
