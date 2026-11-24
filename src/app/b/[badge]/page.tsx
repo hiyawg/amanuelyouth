@@ -26,6 +26,9 @@ const withLinks = (text: string) => text.split(/(https?:\/\/[^\s<>"]+[^\s<>".,;:
 export default function ParentBadge() {
   const { badge } = useParams<{ badge: string }>();
   const [d, setD] = useState<Data | null>(null), [err, setErr] = useState("");
+  // A homework reminder links here with ?d=<lesson date>, so "Do the lesson together" opens that lesson.
+  const [lessonDate, setLessonDate] = useState("");
+  useEffect(() => { const x = new URLSearchParams(location.search).get("d") || ""; if (/^\d{4}-\d{2}-\d{2}$/.test(x)) setLessonDate(x); }, []);
 
   useEffect(() => {
     const load = () => api<Data>(`/api/badge/${encodeURIComponent(badge)}`).then(x => { setD(x); setErr(""); }).catch(e => setErr(e.message));
@@ -90,7 +93,7 @@ export default function ParentBadge() {
                   {d.progress.notes && <span className="chip m">✏️ Wrote notes</span>}
                   {d.progress.submitted && <span className="chip m">📝 Answers submitted</span>}
                 </div>}
-                <Link className="btn" href={`/lesson?t=${encodeURIComponent(d.token)}&b=${encodeURIComponent(s.badge)}`}>Do the lesson together</Link>
+                <Link className="btn" href={`/lesson?t=${encodeURIComponent(d.token)}&b=${encodeURIComponent(s.badge)}${lessonDate ? `&d=${lessonDate}` : ""}`}>Do the lesson together</Link>
                 <Link className="btn ghost" href="/revision">🗺️ Revision maps to print at home</Link>
               </section>
             )}

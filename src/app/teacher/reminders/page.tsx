@@ -17,7 +17,7 @@ function toParent(r: Row, L: Lesson, origin: string) {
   const first = firstName(r.s.name);
   return [
     `Hi! A quick reminder from ${CHURCH_NAME}: ${first} still has ${missing(r)} for ${sessionLabel(L)}: ${L.title}.`,
-    `${first} can finish it here. Tap "Do the lesson together": ${origin}/b/${r.s.badge}`,
+    `${first} can finish it here. Tap "Do the lesson together": ${origin}/b/${r.s.badge}?d=${L.date}`,
     `Thank you for helping ${first} keep growing! – ${CHURCH_NAME}`,
   ].join("\n\n");
 }
@@ -25,7 +25,7 @@ function toStudent(r: Row, L: Lesson, origin: string) {
   const first = firstName(r.s.name);
   return [
     `Hi ${first}! A reminder from your teacher at ${CHURCH_NAME}: you still have ${missing(r)} for ${sessionLabel(L)}: ${L.title}.`,
-    `Open your lesson here and tap "Do the lesson together": ${origin}/b/${r.s.badge}`,
+    `Open your lesson here and tap "Do the lesson together": ${origin}/b/${r.s.badge}?d=${L.date}`,
     `You can do it! 🙌`,
   ].join("\n\n");
 }

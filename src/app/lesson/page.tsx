@@ -29,7 +29,8 @@ function Lesson() {
   const [token, setToken] = useState<string | null>(null);
   const [me, setMe] = useState<Me | null>(null), [err, setErr] = useState("");
   const [mode, setMode] = useState<Mode>("menu");
-  const [date, setDate] = useState<string | null>(null);
+  // ?d=YYYY-MM-DD opens an earlier lesson, for example from a homework reminder.
+  const [date, setDate] = useState<string | null>(() => /^\d{4}-\d{2}-\d{2}$/.test(sp.get("d") || "") ? sp.get("d") : null);
 
   useEffect(() => {
     let tk = sp.get("t");
