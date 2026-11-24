@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { sb } from "@/lib/supabase-browser";
 import {
   CONSENT_FORM, addDays, dayKey, newBadge, pickupCode, randomCode, streak as streakOf,
-  type Absence, type AbsenceReason, type Announcement, type Reminder, type Checkin, type Consent, type Group, type NoteKind, type StudentNote, type Lesson, type Method, type ParentMessage, type Progress, type Session, type Student, type StaffRole, type Topic,
+  type Absence, type AbsenceReason, type Announcement, type Answer, type Reminder, type Checkin, type Consent, type Group, type NoteKind, type StudentNote, type Lesson, type Method, type ParentMessage, type Progress, type Session, type Student, type StaffRole, type Topic,
 } from "@/lib/shared";
 
 /** A teacher an admin can give students to. */
@@ -89,8 +89,9 @@ function useTeacherDataValue(role: StaffRole) {
       return { already: false, streak: prior + 1, pickup: (ins.data as Checkin).pickup };
     },
     /** Mark a student's workbook answers reviewed (with a comment), or reopen them so the student can edit. */
-    async reviewAnswers(sid: string, date: string, patch: { reviewed?: boolean; reopen?: boolean; comment?: string }) {
+    async reviewAnswers(sid: string, date: string, patch: { reviewed?: boolean; reopen?: boolean; comment?: string; answers?: Answer[] }) {
       const row: Record<string, unknown> = {};
+      if (patch.answers) row.answers = patch.answers;
       if (patch.comment !== undefined) row.teacher_comment = patch.comment.slice(0, 2000);
       if (patch.reviewed !== undefined) row.reviewed_at = patch.reviewed ? new Date().toISOString() : null;
       if (patch.reopen) { row.submitted_at = null; row.reviewed_at = null; }

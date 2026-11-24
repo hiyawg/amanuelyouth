@@ -971,3 +971,24 @@ footer em { font-family: var(--f-display); font-style: normal; font-weight: 600;
   .home-ctas .btn.big { flex: 1 1 100% }
   .home-top .brand small { display: none }
 }
+
+/* per-answer marks: the teacher's buttons, and what the student sees */
+.mk-row { display: flex; flex-direction: column; gap: 8px; margin-top: 6px }
+.mk-btns { display: flex; flex-wrap: wrap; gap: 6px }
+.mk { font: inherit; font-size: 12px; font-weight: 600; padding: 5px 10px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer }
+.mk[aria-pressed="true"].mk-good { background: var(--ok); border-color: var(--ok); color: #fff }
+.mk[aria-pressed="true"].mk-almost { background: var(--warn); border-color: var(--warn); color: #fff }
+.mk[aria-pressed="true"].mk-again { background: var(--bad); border-color: var(--bad); color: #fff }
+.mk-more { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: 6px }
+@media (max-width: 560px) { .mk-more { grid-template-columns: 1fr } }
+.qa.review.mk-good { border-left: 3px solid var(--ok); padding-left: 10px }
+.qa.review.mk-almost { border-left: 3px solid var(--warn); padding-left: 10px }
+.qa.review.mk-again { border-left: 3px solid var(--bad); padding-left: 10px }
+.mark { display: inline-flex; align-items: center; gap: 4px; font-weight: 800; font-size: .85rem; padding: 3px 10px; border-radius: 999px; align-self: flex-start }
+.mark.mk-good { background: color-mix(in srgb, var(--ok) 16%, var(--surface)); color: var(--ok) }
+.mark.mk-almost { background: color-mix(in srgb, var(--warn) 16%, var(--surface)); color: var(--warn) }
+.mark.mk-again { background: color-mix(in srgb, var(--bad) 14%, var(--surface)); color: var(--bad) }
+.answer-mark { display: flex; flex-direction: column; gap: 6px; border-left: 4px solid var(--line); padding: 4px 0 4px 12px }
+.answer-mark.mk-good { border-color: var(--ok) } .answer-mark.mk-almost { border-color: var(--warn) } .answer-mark.mk-again { border-color: var(--bad) }
+.answer-mark .linkbtn { align-self: flex-start }
+.review-sum { border: 2px solid color-mix(in srgb, var(--accent) 40%, var(--line)) }

@@ -19,8 +19,12 @@ export async function GET(req: Request) {
   const modelAnswers = L && prog?.reviewed_at ? (L.review || []).map(r => r.a) : null;
   // Every reply a teacher has left, from any session, newest first.
   const feedback = rows
-    .map(p => ({ date: p.date, answers: p.reviewed_at && p.teacher_comment?.trim() ? p.teacher_comment : "", reflection: p.reflection_reviewed_at && p.reflection_comment?.trim() ? p.reflection_comment : "" }))
-    .filter(f => f.answers || f.reflection)
+    .map(p => ({
+      date: p.date, answers: p.reviewed_at && p.teacher_comment?.trim() ? p.teacher_comment : "", reflection: p.reflection_reviewed_at && p.reflection_comment?.trim() ? p.reflection_comment : "",
+      // Passages the teacher asked them to read again, from answers that need more work.
+      reread: p.reviewed_at ? [...new Set((p.answers || []).filter(a => a.mark && a.mark !== "good" && a.read).map(a => a.read!))] : [],
+    }))
+    .filter(f => f.answers || f.reflection || f.reread.length)
     .map(f => { const l = past.find(x => x.date === f.date); return { ...f, session_no: l?.session_no ?? null, title: l?.title ?? "" }; })
     .sort((a, b) => b.date.localeCompare(a.date));
   return json({

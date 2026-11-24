@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useTeacher } from "@/components/teacher-data";
 import { Avatar } from "@/components/ui";
-import { THE_HOUR, addDays, answerStatus, prettyDate, reflectionStatus, sessionLabel, sundayFrom, timeOf, type Lesson, type Progress } from "@/lib/shared";
+import { MARKS, READ_MAP, THE_HOUR, addDays, answerStatus, prettyDate, reflectionStatus, sessionLabel, sundayFrom, timeOf, type Answer, type Lesson, type Mark, type Progress } from "@/lib/shared";
 
 const blank = (date: string, session_no: number | null): Lesson => ({
   date, session_no, unit: "", title: "", subtitle: "", big_idea: "", objectives: ["", "", ""],
@@ -240,7 +240,7 @@ function AnswersPanel({ l }: { l: Lesson }) {
           const st = answerStatus(p);
           return (
             <li key={p.student_id} className="row" style={{ alignItems: "flex-start" }}>
-              <div className="who"><Avatar name={s!.name} grp={s!.grp} /><div><b>{s!.name}</b><span className="meta">{p.submitted_at ? `Submitted ${prettyDate(p.submitted_at.slice(0, 10))}, ${timeOf(p.submitted_at)}` : `${p.answers.filter(x => x.a.trim()).length} of ${l.review.length} answered so far`}</span></div></div>
+              <div className="who"><Avatar name={s!.name} grp={s!.grp} /><div><b>{s!.name}</b><span className="meta">{p.submitted_at ? `Submitted ${prettyDate(p.submitted_at.slice(0, 10))}, ${timeOf(p.submitted_at)}` : `${p.answers.filter(x => x.a.trim()).length} of ${l.review.length} answered so far`}{st === "reviewed" && markSummary(p.answers) ? ` · ${markSummary(p.answers)}` : ""}</span></div></div>
               <span className={`chip ${st === "submitted" ? "fire" : st === "reviewed" ? "visit" : "m"}`}>{STATUS[st]}</span>
               <button className="btn ghost sm" onClick={() => setOpenId(openId === p.student_id ? null : p.student_id)}>{openId === p.student_id ? "Close" : st === "submitted" ? "Review" : "View"}</button>
               {openId === p.student_id && <Review l={l} p={p} />}
@@ -304,9 +304,24 @@ function ReflectionReview({ p }: { p: Progress }) {
   );
 }
 
+const MARK_ICON: Record<Mark, string> = { good: "✓", almost: "≈", again: "✗" };
+/** Marks given so far, for the list: "6 ✓ · 1 ≈ · 1 ✗". */
+const markSummary = (answers: Answer[]) => (Object.keys(MARKS) as Mark[]).map(k => [k, answers.filter(a => a.mark === k).length] as const).filter(([, n]) => n).map(([k, n]) => `${n} ${MARK_ICON[k]}`).join(" · ");
+
+/** The lesson Scripture a model answer points to, to suggest as "read again": its book and chapter appear in the answer. */
+function suggestRead(model: string, refs: string[]) {
+  return refs.find(r => { const head = r.split(":")[0].trim(); return head && model.includes(head); }) || "";
+}
+
 function Review({ l, p }: { l: Lesson; p: Progress }) {
   const t = useTeacher();
   const [comment, setComment] = useState(p.teacher_comment || ""), [msg, setMsg] = useState(""), [busy, setBusy] = useState(false);
+  const [marks, setMarks] = useState<Answer[]>(() => p.answers.map(x => ({ ...x })));
+  const refs = l.scriptures.map(x => x.ref).filter(Boolean);
+  const setOne = (i: number, patch: Partial<Answer>) => setMarks(m => m.map((x, k) => k === i ? { ...x, ...patch } : x));
+  const mark = (i: number, k: Mark) => setOne(i, { mark: marks[i].mark === k ? undefined : k,
+    // Suggest a passage to read again when the answer needs more work.
+    read: k !== "good" && !marks[i].read ? suggestRead(l.review[i]?.a || "", refs) : k === "good" ? "" : marks[i].read });
   const run = async (patch: Parameters<typeof t.actions.reviewAnswers>[2], done: string) => {
     setBusy(true); setMsg("");
     try { await t.actions.reviewAnswers(p.student_id, p.date, patch); setMsg(done); } catch (e: any) { setMsg(e.message); }
@@ -314,19 +329,37 @@ function Review({ l, p }: { l: Lesson; p: Progress }) {
   };
   return (
     <div className="stack" style={{ gap: 12, flexBasis: "100%", paddingTop: 6 }}>
-      {p.answers.map((x, i) => (
-        <div key={i} className="qa review">
+      {marks.map((x, i) => (
+        <div key={i} className={`qa review ${x.mark ? `mk-${x.mark}` : ""}`}>
           <b>{i + 1}. {x.q}</b>
           <p className="answer">{x.a.trim() || <span className="muted">No answer</span>}</p>
           {l.review[i]?.a && <p className="small"><span className="eyebrow">Model answer</span> {l.review[i].a}</p>}
+          {p.submitted_at && (
+            <div className="mk-row">
+              <div className="mk-btns" role="group" aria-label={`Mark answer ${i + 1}`}>
+                {(Object.keys(MARKS) as Mark[]).map(k => <button key={k} type="button" className={`mk mk-${k}`} aria-pressed={x.mark === k} onClick={() => mark(i, k)}>{MARK_ICON[k]} {MARKS[k]}</button>)}
+              </div>
+              {x.mark && x.mark !== "good" && (
+                <div className="mk-more">
+                  <select className="input" aria-label="Read again" value={x.read || ""} onChange={e => setOne(i, { read: e.target.value })}>
+                    <option value="">Read again: nothing</option>
+                    {refs.map(r => <option key={r} value={r}>Read again: {r}</option>)}
+                    <option value={READ_MAP}>Read again: {READ_MAP}</option>
+                  </select>
+                  <input className="input" maxLength={300} placeholder="Note for this answer (optional)" value={x.note || ""} onChange={e => setOne(i, { note: e.target.value })} />
+                </div>
+              )}
+            </div>
+          )}
         </div>
       ))}
       {p.submitted_at && (
         <>
-          <div className="field"><label htmlFor={`cm-${p.student_id}`}>Comment for the student (once you mark it reviewed, they see this and the model answers)</label><textarea className="input" id={`cm-${p.student_id}`} rows={2} value={comment} onChange={e => setComment(e.target.value)} /></div>
+          <div className="field"><label htmlFor={`cm-${p.student_id}`}>Comment for the student (once you mark it reviewed, they see this, your marks and the model answers)</label><textarea className="input" id={`cm-${p.student_id}`} rows={2} value={comment} onChange={e => setComment(e.target.value)} /></div>
           <div className="chips" style={{ alignItems: "center" }}>
-            <button className="btn sm" disabled={busy} onClick={() => run({ reviewed: true, comment }, "Marked reviewed.")}>{p.reviewed_at ? "Update comment" : "Mark reviewed"}</button>
+            <button className="btn sm" disabled={busy} onClick={() => run({ reviewed: true, comment, answers: marks }, "Marked reviewed.")}>{p.reviewed_at ? "Update review" : "Mark reviewed"}</button>
             <button className="btn ghost sm" disabled={busy} onClick={() => run({ reopen: true }, "Reopened. The student can edit and submit again.")}>Reopen for edits</button>
+            {markSummary(marks) && <span className="muted small">{markSummary(marks)}</span>}
             {msg && <span className="muted small">{msg}</span>}
           </div>
         </>

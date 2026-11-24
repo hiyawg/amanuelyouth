@@ -8,13 +8,13 @@ import { Footer, Logo } from "@/components/ui";
 import { HowToVideo } from "@/components/how-to-video";
 import { hasMap, LessonMap } from "@/components/lesson-map";
 import { api, confetti, recall, store } from "@/lib/browser";
-import { answerStatus, firstName, prettyDate, sessionLabel, shuffle, verseChunks, type Group, type Progress } from "@/lib/shared";
+import { MARKS, READ_MAP, answerStatus, firstName, prettyDate, sessionLabel, shuffle, verseChunks, type Group, type Mark, type Progress } from "@/lib/shared";
 import type { StudentLesson } from "@/lib/server";
 
 type Me = {
   student: { id: string; name: string; grp: Group }; lesson: StudentLesson | null; progress: Progress | null; modelAnswers: string[] | null;
   current: boolean; past: { date: string; session_no: number | null; title: string }[];
-  feedback?: { date: string; session_no: number | null; title: string; answers: string; reflection: string }[];
+  feedback?: { date: string; session_no: number | null; title: string; answers: string; reflection: string; reread?: string[] }[];
   streak: number; badges: { name: string; desc: string; on: boolean }[];
 };
 type Mode = "menu" | "verse" | "notes" | "answers" | "map";
@@ -85,6 +85,7 @@ function Lesson() {
                     <span className="eyebrow">{f.session_no ? `Session ${f.session_no}` : prettyDate(f.date)}{f.title ? ` · ${f.title}` : ""}</span>
                     {f.answers && <p><b>On your answers:</b> {f.answers}</p>}
                     {f.reflection && <p><b>On your notes:</b> {f.reflection}</p>}
+                    {!!f.reread?.length && <p><b>📖 Read again:</b> {f.reread.join(" · ")}</p>}
                     {f.date !== L.date && <button className="linkbtn" style={{ alignSelf: "flex-start" }} onClick={() => setDate(me.past[0]?.date === f.date ? null : f.date)}>Open this lesson</button>}
                   </div>
                 ))}
@@ -126,7 +127,7 @@ function Lesson() {
           </>
         )}
         {me && L && g && mode === "verse" && <VerseGame text={L.verse_text} reference={L.verse_ref} grp={g} name={me.student.name} toMenu={toMenu} onDone={() => save({ verseDone: true })} />}
-        {me && L && mode === "answers" && <Answers questions={L.review} progress={p ?? null} modelAnswers={me.modelAnswers} toMenu={toMenu} save={save} />}
+        {me && L && mode === "answers" && <Answers questions={L.review} progress={p ?? null} modelAnswers={me.modelAnswers} scriptures={L.scriptures} onMap={hasMap(L.session_no) ? () => setMode("map") : undefined} toMenu={toMenu} save={save} />}
         {me && L && mode === "map" && L.session_no && (
           <>
             {toMenu}
@@ -190,7 +191,9 @@ function VerseGame({ text, reference, grp, name, toMenu, onDone }: { text: strin
   );
 }
 
-function Answers({ questions, progress, modelAnswers, toMenu, save }: { questions: string[]; progress: Progress | null; modelAnswers: string[] | null; toMenu: React.ReactNode; save: (f: object) => Promise<boolean> }) {
+const MARK_ICON: Record<Mark, string> = { good: "✓", almost: "≈", again: "✗" };
+
+function Answers({ questions, progress, modelAnswers, scriptures, onMap, toMenu, save }: { questions: string[]; progress: Progress | null; modelAnswers: string[] | null; scriptures: { ref: string; text: string }[]; onMap?: () => void; toMenu: React.ReactNode; save: (f: object) => Promise<boolean> }) {
   const [a, setA] = useState<string[]>(() => questions.map((_, i) => progress?.answers?.[i]?.a || ""));
   const [state, setState] = useState<"" | "saving" | "saved">(""), [arm, setArm] = useState(false), [busy, setBusy] = useState(false);
   const locked = !!progress?.submitted_at, filled = a.filter(x => x.trim()).length;
@@ -212,7 +215,7 @@ function Answers({ questions, progress, modelAnswers, toMenu, save }: { question
     <>
       {toMenu}
       <div><p className="eyebrow">Workbook questions</p><h1 style={{ fontSize: "1.6rem" }}>{locked ? "Your answers" : "Answer in your own words"}</h1></div>
-      {progress?.reviewed_at ? <div className="panel stack" style={{ gap: 6 }}><b>Reviewed by your teacher ✓</b>{progress.teacher_comment && <p>{progress.teacher_comment}</p>}{modelAnswers?.some(x => x.trim()) && <p className="muted small">Compare your answers with the answers below each question.</p>}</div>
+      {progress?.reviewed_at ? <ReviewSummary progress={progress} hasModel={!!modelAnswers?.some(x => x.trim())} />
         : locked ? <p className="out" style={{ fontSize: "1rem" }}>Submitted ✓ Your teacher will look at them soon.</p>
         : <p className="muted small">Your answers save as you type. When you're happy with them, tap Submit at the bottom.</p>}
       {questions.map((q, i) => (
@@ -221,6 +224,7 @@ function Answers({ questions, progress, modelAnswers, toMenu, save }: { question
           {locked ? <p className="answer">{a[i] || <span className="muted">No answer</span>}</p>
             : <textarea className="input" id={`ans${i}`} rows={3} value={a[i]} onChange={e => { const n = [...a]; n[i] = e.target.value; setA(n); setState("saving"); }} />}
           {modelAnswers?.[i]?.trim() && <p className="small"><span className="eyebrow">Answer</span> {modelAnswers[i]}</p>}
+          {progress?.reviewed_at && <AnswerMark a={progress.answers?.[i]} scriptures={scriptures} onMap={onMap} />}
         </div>
       ))}
       {!locked && (
@@ -246,5 +250,40 @@ function Notes({ progress, toMenu, onSave }: { progress: Progress | null; toMenu
       {saved && <p className="out" style={{ fontSize: "1rem" }}>Saved ✓</p>}
       <button className="btn big" onClick={async () => { await onSave(text.trim()); setSaved(true); }}>Save my notes</button>
     </>
+  );
+}
+
+/** The teacher's review at the top of the answers: their comment, how the answers went, and what to read again. */
+function ReviewSummary({ progress, hasModel }: { progress: Progress; hasModel: boolean }) {
+  const counts = (Object.keys(MARKS) as Mark[]).map(k => [k, progress.answers.filter(a => a.mark === k).length] as const).filter(([, n]) => n);
+  const reread = [...new Set(progress.answers.filter(a => a.mark && a.mark !== "good" && a.read).map(a => a.read!))];
+  return (
+    <div className="panel stack review-sum" style={{ gap: 8 }}>
+      <b>Reviewed by your teacher ✓</b>
+      {progress.teacher_comment && <p>{progress.teacher_comment}</p>}
+      {counts.length > 0 && <div className="chips">{counts.map(([k, n]) => <span key={k} className={`mark mk-${k}`}>{MARK_ICON[k]} {n} {MARKS[k].toLowerCase()}</span>)}</div>}
+      {reread.length > 0 && <p><b>📖 Read again:</b> {reread.join(" · ")}</p>}
+      {hasModel && <p className="muted small">Compare your answers with the answers below each question.</p>}
+    </div>
+  );
+}
+
+/** One answer's mark, the teacher's note, and the passage to read again, which opens right here. */
+function AnswerMark({ a, scriptures, onMap }: { a?: { mark?: Mark; note?: string; read?: string }; scriptures: { ref: string; text: string }[]; onMap?: () => void }) {
+  const [open, setOpen] = useState(false);
+  if (!a?.mark) return null;
+  const passage = a.read && a.read !== READ_MAP ? scriptures.find(x => x.ref === a.read) : undefined;
+  return (
+    <div className={`answer-mark mk-${a.mark}`}>
+      <span className={`mark mk-${a.mark}`}>{MARK_ICON[a.mark]} {MARKS[a.mark]}</span>
+      {a.note && <p>{a.note}</p>}
+      {a.mark !== "good" && a.read === READ_MAP && onMap && <button className="linkbtn" onClick={onMap}>🗺️ Look at the lesson map again</button>}
+      {a.mark !== "good" && passage && (
+        <>
+          <button className="linkbtn" aria-expanded={open} onClick={() => setOpen(o => !o)}>📖 Read again: {passage.ref}</button>
+          {open && passage.text && <blockquote className="verse" style={{ fontSize: ".95rem" }}>{passage.text}<br /><strong>{passage.ref}</strong></blockquote>}
+        </>
+      )}
+    </div>
   );
 }

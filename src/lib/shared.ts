@@ -70,7 +70,13 @@ export const THE_HOUR: [string, string, number][] = [
   ["", "Memory verse and prayer", 5],
 ];
 export const sessionLabel = (l: Pick<Lesson, "session_no">) => l.session_no ? `Session ${l.session_no}` : "Session";
-export type Answer = { q: string; a: string };
+/** A student's answer to one workbook question. mark, note and read are added by the teacher when reviewing. */
+export type Answer = { q: string; a: string; mark?: Mark; note?: string; read?: string };
+/** How a teacher marks one answer. */
+export const MARKS = { good: "Well done", almost: "Almost", again: "Look at this again" } as const;
+export type Mark = keyof typeof MARKS;
+/** The "read again" choice that points to the lesson map instead of a Scripture. */
+export const READ_MAP = "The lesson map";
 /** Teachers who sign in with a username get a private placeholder email in this domain. */
 export const USERNAME_DOMAIN = "teachers.shepherd.local";
 /** The email to sign in with: a typed email as is, or a username turned into its placeholder email. */
