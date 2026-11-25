@@ -992,3 +992,4 @@ footer em { font-family: var(--f-display); font-style: normal; font-weight: 600;
 .answer-mark.mk-good { border-color: var(--ok) } .answer-mark.mk-almost { border-color: var(--warn) } .answer-mark.mk-again { border-color: var(--bad) }
 .answer-mark .linkbtn { align-self: flex-start }
 .review-sum { border: 2px solid color-mix(in srgb, var(--accent) 40%, var(--line)) }
+.app .panel.later { border: 1px solid var(--ws-alert-line); background: var(--ws-alert-bg) }

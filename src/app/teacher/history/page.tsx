@@ -95,6 +95,28 @@ export default function History() {
       </div>
 
       {msg && <div className="banner">{msg}</div>}
+      {later.length > 0 && date <= t.today && (
+        <section className="panel later" style={{ marginBottom: 16 }}>
+          <h2>Added after this class <span className="n">({later.length})</span></h2>
+          <p className="muted small" style={{ marginBottom: 8 }}>These students joined the list after {prettyDate(date)}. If one of them came that day, mark them present.</p>
+          <div className="tbl-wrap">
+            <table className="tbl">
+              <thead><tr><th>Name</th><th>Group</th><th className="num">Added</th><th><span className="sr">Actions</span></th></tr></thead>
+              <tbody>
+                {later.map(s => (
+                  <tr key={s.id} className={`g-${s.grp}`}>
+                    <td><b>{s.name}</b></td>
+                    <td><span className="chip">{GROUPS[s.grp].label}</span></td>
+                    <td className="num">{prettyDate(dayKey(new Date(s.created_at)))}</td>
+                    <td className="acts"><button className="btn sm" onClick={() => mark([s.id], true, `${s.name} marked present for ${prettyDate(date)}.`)}>Mark present</button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
       <div className="cols">
         <section className="panel">
           <div className="panel-head" style={{ marginBottom: 6 }}>
@@ -145,28 +167,6 @@ export default function History() {
           ) : <p className="empty">No one checked in.</p>}
         </section>
       </div>
-
-      {later.length > 0 && date <= t.today && (
-        <section className="panel" style={{ marginTop: 16 }}>
-          <h2>Added after this class <span className="n">({later.length})</span></h2>
-          <p className="muted small" style={{ marginBottom: 8 }}>These students joined the list after {prettyDate(date)}. If one of them came that day, mark them present.</p>
-          <div className="tbl-wrap">
-            <table className="tbl">
-              <thead><tr><th>Name</th><th>Group</th><th className="num">Added</th><th><span className="sr">Actions</span></th></tr></thead>
-              <tbody>
-                {later.map(s => (
-                  <tr key={s.id} className={`g-${s.grp}`}>
-                    <td><b>{s.name}</b></td>
-                    <td><span className="chip">{GROUPS[s.grp].label}</span></td>
-                    <td className="num">{prettyDate(dayKey(new Date(s.created_at)))}</td>
-                    <td className="acts"><button className="btn sm" onClick={() => mark([s.id], true, `${s.name} marked present for ${prettyDate(date)}.`)}>Mark present</button></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
 
       <section className="panel" style={{ marginTop: 16 }}>
         <h2>Each student</h2>
