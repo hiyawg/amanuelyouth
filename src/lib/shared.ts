@@ -159,6 +159,12 @@ export function prettyDate(key: string, long = false): string {
     ? { weekday: "long", month: "long", day: "numeric" }
     : { weekday: "short", month: "short", day: "numeric" });
 }
+/** Class meets on Sundays only: check-in opens then, and attendance counts only Sundays. */
+export function isClassDay(key: string): boolean {
+  const [y, m, d] = key.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).getUTCDay() === 0;
+}
+export const NOT_CLASS_DAY = "Check-in is only open on Sundays.";
 /** The next Sunday on or after a date key. */
 export function sundayFrom(key: string): string {
   const [y, m, d] = key.split("-").map(Number);

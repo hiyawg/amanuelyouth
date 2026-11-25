@@ -1,10 +1,11 @@
 // Finish a phone check-in: an existing student (by token or pick), or a first-time visitor.
 import { admin, checkIn, currentLesson, fail, getStudent, json, publicStudent, readTicket, studentFromToken, studentStreak, studentToken } from "@/lib/server";
-import { GROUP_KEYS, newBadge, type Group, type Student } from "@/lib/shared";
+import { GROUP_KEYS, NOT_CLASS_DAY, dayKey, isClassDay, newBadge, type Group, type Student } from "@/lib/shared";
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
   if (!readTicket(body.ticket)) return fail("Your check-in timed out. Scan the code again.", 401);
+  if (!isClassDay(dayKey())) return fail(`${NOT_CLASS_DAY} See you on Sunday!`, 403);
   let student: Student | null = null;
   if (body.token) student = await studentFromToken(body.token);
   else if (typeof body.studentId === "string") student = await getStudent(body.studentId);

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { sb } from "@/lib/supabase-browser";
 import { TeacherData, useTeacher } from "@/components/teacher-data";
-import { CHURCH_NAME, GROUPS, initials, loginName, timeOf, type StaffRole } from "@/lib/shared";
+import { CHURCH_NAME, GROUPS, initials, isClassDay, loginName, timeOf, type StaffRole } from "@/lib/shared";
 
 // Line icons for the page tabs, drawn on a 24-unit grid.
 const ICONS: Record<string, string> = {
@@ -31,6 +31,13 @@ const NAV: [string, [string, string, string][]][] = [
   ["Families", [["/teacher/agreements", "Agreements", "agreements"], ["/teacher/announcements", "Announcements", "announcements"], ["/teacher/messages", "Parent messages", "messages"], ["/teacher/absences", "Absences", "absences"], ["/teacher/reminders", "Reminders", "reminders"]]],
 ];
 const ADMIN_NAV: [string, [string, string, string][]] = ["Admin", [["/teacher/teachers", "Teachers", "teachers"]]];
+
+/** On a day without class, check-in pages say so. */
+function ClassDayNote({ path }: { path: string }) {
+  const t = useTeacher();
+  if (isClassDay(t.today) || !["/teacher", "/teacher/kiosk"].includes(path)) return null;
+  return <div className="banner noprint">Today isn't a class day. Check-in opens on Sunday, and attendance only counts Sundays.</div>;
+}
 
 /** The side menu. On a phone it folds into a Menu button that opens the same list. */
 function SideNav({ admin, path }: { admin: boolean; path: string }) {
@@ -134,7 +141,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
         <TopBar email={email} />
         <div className="ap-shell">
           <SideNav admin={role === "admin"} path={path} />
-          <main className="ap-body">{children}</main>
+          <main className="ap-body"><ClassDayNote path={path} />{children}</main>
         </div>
         <BottomBar />
       </div>

@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { sb } from "@/lib/supabase-browser";
 import {
-  CONSENT_FORM, addDays, dayKey, newBadge, pickupCode, randomCode, streak as streakOf,
+  CONSENT_FORM, NOT_CLASS_DAY, addDays, dayKey, isClassDay, newBadge, pickupCode, randomCode, streak as streakOf,
   type Absence, type AbsenceReason, type Announcement, type Answer, type Reminder, type Checkin, type Consent, type Group, type NoteKind, type StudentNote, type Lesson, type Method, type ParentMessage, type Progress, type Session, type Student, type StaffRole, type Topic,
 } from "@/lib/shared";
 
@@ -66,7 +66,8 @@ function useTeacherDataValue(role: StaffRole) {
     const byId = new Map(d.students.map(s => [s.id, s]));
     const todays = d.checkins.filter(c => c.date === today);
     const present = new Map(todays.map(c => [c.student_id, c]));
-    const classDays = [...new Set([...d.checkins.map(c => c.date), ...d.sessions.map(s => s.date)])].sort().reverse();
+    // Only Sundays are class days, so a stray weekday check-in never counts as a class anyone missed.
+    const classDays = [...new Set([...d.checkins.map(c => c.date), ...d.sessions.map(s => s.date)])].filter(isClassDay).sort().reverse();
     const attendedBy = new Map<string, Set<string>>();
     for (const c of d.checkins) { if (!attendedBy.has(c.student_id)) attendedBy.set(c.student_id, new Set()); attendedBy.get(c.student_id)!.add(c.date); }
     const streak = (id: string) => streakOf(classDays, attendedBy.get(id) || new Set(), today);
@@ -81,6 +82,7 @@ function useTeacherDataValue(role: StaffRole) {
 
   const actions = useMemo(() => ({
     async checkIn(st: Student, method: Method) {
+      if (!isClassDay(today)) throw new Error(NOT_CLASS_DAY);
       const prior = derived.streak(st.id);
       const ins = await sb().from("checkins").insert({ student_id: st.id, date: today, method, pickup: st.grp === "elementary" ? pickupCode() : null }).select().single();
       if (ins.error && ins.error.code !== "23505") throw new Error(ins.error.message);
@@ -111,6 +113,7 @@ function useTeacherDataValue(role: StaffRole) {
       if (r.error) throw new Error(r.error.message); reload();
     },
     async startSession(theme: string) {
+      if (!isClassDay(today)) throw new Error(NOT_CLASS_DAY);
       const r = await sb().from("sessions").upsert({ date: today, secret: randomCode(16), theme });
       if (r.error) throw new Error(r.error.message); reload();
     },

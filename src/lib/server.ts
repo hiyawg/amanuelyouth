@@ -1,7 +1,7 @@
 // Server-only helpers: the Supabase service client, signed tokens, and shared queries.
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { badgesFor, dayKey, pickupCode, streak, type Lesson, type Method, type Student } from "./shared";
+import { NOT_CLASS_DAY, badgesFor, dayKey, isClassDay, pickupCode, streak, type Lesson, type Method, type Student } from "./shared";
 
 let client: SupabaseClient | null = null;
 export function admin(): SupabaseClient {
@@ -72,8 +72,8 @@ export async function studentStreak(id: string, today = dayKey()): Promise<{ str
     db.from("sessions").select("date").order("date", { ascending: false }).limit(200),
     db.from("checkins").select("date").eq("student_id", id).limit(1000),
   ]);
-  const days = [...new Set([...(all.data || []), ...(sess.data || [])].map(r => r.date as string))].sort().reverse();
-  const attended = new Set((mine.data || []).map(r => r.date as string));
+  const days = [...new Set([...(all.data || []), ...(sess.data || [])].map(r => r.date as string))].filter(isClassDay).sort().reverse();
+  const attended = new Set((mine.data || []).map(r => r.date as string).filter(isClassDay));
   return { streak: streak(days, attended, today), classes: attended.size };
 }
 
@@ -119,6 +119,7 @@ export function noteMiss(req: Request) {
 export const TOO_MANY = "Too many wrong codes. Wait 15 minutes, then try again.";
 
 export async function checkIn(student: Student, method: Method, date = dayKey()) {
+  if (!isClassDay(date)) throw new Error(NOT_CLASS_DAY);
   const db = admin();
   const row = { student_id: student.id, date, method, pickup: student.grp === "elementary" ? pickupCode() : null };
   const ins = await db.from("checkins").insert(row).select().single();

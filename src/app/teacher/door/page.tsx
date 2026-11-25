@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTeacher } from "@/components/teacher-data";
 import { Avatar, Celebrate, Qr, type Celebration } from "@/components/ui";
 import { clockOffset, confetti } from "@/lib/browser";
-import { METHODS, WINDOW_MS, codeFor, curWin, prettyDate, scannedBadge, timeOf } from "@/lib/shared";
+import { METHODS, WINDOW_MS, codeFor, curWin, isClassDay, prettyDate, scannedBadge, timeOf } from "@/lib/shared";
 
 export default function Door() {
   const t = useTeacher();
@@ -25,6 +25,13 @@ export default function Door() {
   useEffect(() => { scanRef.current?.focus(); }, [t.session]);
 
   if (!t.loaded) return <p className="muted">Loading…</p>;
+  if (!t.session && !isClassDay(t.today)) return (
+    <section className="start panel">
+      <p className="eyebrow">{prettyDate(t.today, true)}</p>
+      <h1>No class today</h1>
+      <p className="muted">Check-in opens on Sunday. Come back to this page on Sunday morning to show the check-in code.</p>
+    </section>
+  );
   if (!t.session) return (
     <form className="start panel" onSubmit={async e => {
       e.preventDefault();
