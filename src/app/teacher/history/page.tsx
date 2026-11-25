@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useTeacher } from "@/components/teacher-data";
 import { saveFile } from "@/lib/browser";
-import { GROUPS, GROUP_KEYS, METHODS, dayKey, prettyDate, timeOf, type Checkin, type Student } from "@/lib/shared";
+import { GROUPS, GROUP_KEYS, METHODS, addDays, dayKey, isClassDay, prettyDate, sundayFrom, timeOf, type Checkin, type Student } from "@/lib/shared";
 
 const RECENT = 10;
 const shortDate = (key: string) => { const [y, m, d] = key.split("-").map(Number); return new Date(y, m - 1, d).toLocaleDateString(undefined, { month: "short", day: "numeric" }); };
@@ -11,9 +11,17 @@ const shortDate = (key: string) => { const [y, m, d] = key.split("-").map(Number
 export default function History() {
   const t = useTeacher();
   const past = t.classDays.filter(x => x !== t.today);
-  const [picked, setPicked] = useState("");
-  const date = picked || past[0] || t.classDays[0] || "";
-  const i = t.classDays.indexOf(date);
+  const [picked, setPicked] = useState(""), [msg, setMsg] = useState("");
+  // The recent Sundays too, so a class where nobody was checked in can still be filled in.
+  const days = useMemo(() => {
+    const last = isClassDay(t.today) ? t.today : addDays(sundayFrom(t.today), -7);
+    const recent = Array.from({ length: 8 }, (_, k) => addDays(last, -7 * k));
+    return [...new Set([...t.classDays, ...recent])].sort().reverse();
+  }, [t.classDays, t.today]);
+  const date = picked || past[0] || days[0] || "";
+  const i = days.indexOf(date);
+  const run = (p: Promise<unknown>, ok: string) => p.then(() => setMsg(ok), e => setMsg(e.message));
+  const mark = (ids: string[], present: boolean, ok: string) => run(t.actions.markAttendance(ids, date, present), ok);
   const pct = (a: number, b: number) => b ? Math.round(a / b * 100) : 0;
 
   // A student counts for a class only if they were already on the list that day.
@@ -63,11 +71,11 @@ export default function History() {
           <p className="theme">{came.length} came, {missed.length} missed. Visitors are not counted as missing.</p>
         </div>
         <div className="chips" style={{ alignItems: "center" }}>
-          <button className="btn ghost sm" disabled={i >= t.classDays.length - 1} onClick={() => setPicked(t.classDays[i + 1])} aria-label="Earlier class">←</button>
+          <button className="btn ghost sm" disabled={i >= days.length - 1} onClick={() => setPicked(days[i + 1])} aria-label="Earlier class">←</button>
           <select className="input" style={{ width: "auto" }} aria-label="Class date" value={date} onChange={e => setPicked(e.target.value)}>
-            {t.classDays.map(x => <option key={x} value={x}>{x === t.today ? "Today" : prettyDate(x, true)}</option>)}
+            {days.map(x => <option key={x} value={x}>{x === t.today ? "Today" : prettyDate(x, true)}</option>)}
           </select>
-          <button className="btn ghost sm" disabled={i <= 0} onClick={() => setPicked(t.classDays[i - 1])} aria-label="Later class">→</button>
+          <button className="btn ghost sm" disabled={i <= 0} onClick={() => setPicked(days[i - 1])} aria-label="Later class">→</button>
           <button className="btn ghost sm" onClick={exportCsv}>Export as CSV</button>
         </div>
       </section>
@@ -80,13 +88,18 @@ export default function History() {
         })}
       </div>
 
+      {msg && <div className="banner">{msg}</div>}
       <div className="cols">
         <section className="panel">
-          <h2>Missed {missed.length > 0 && <span className="n">({missed.length})</span>}</h2>
+          <div className="panel-head" style={{ marginBottom: 6 }}>
+            <h2>Missed {missed.length > 0 && <span className="n">({missed.length})</span>}</h2>
+            {missed.length > 1 && <button className="btn ghost sm" onClick={() => mark(missed.map(s => s.id), true, `Marked ${missed.length} students present for ${prettyDate(date)}.`)}>Mark all present</button>}
+          </div>
+          {missed.length > 0 && <p className="muted small" style={{ marginBottom: 8 }}>Forgot to check someone in? Mark them present here.</p>}
           {missed.length ? (
             <div className="tbl-wrap">
               <table className="tbl">
-                <thead><tr><th>Name</th><th>Group</th><th className="num">Last here</th></tr></thead>
+                <thead><tr><th>Name</th><th>Group</th><th className="num">Last here</th><th><span className="sr">Actions</span></th></tr></thead>
                 <tbody>
                   {GROUP_KEYS.flatMap(k => missed.filter(s => s.grp === k)).map(s => {
                     const last = t.classDays.find(x => x < date && attended.get(s.id)?.has(x));
@@ -95,6 +108,7 @@ export default function History() {
                         <td><b>{s.name}</b></td>
                         <td><span className="chip">{GROUPS[s.grp].label}</span></td>
                         <td className="num">{last ? prettyDate(last) : <span className="muted">Hasn't come yet</span>}</td>
+                        <td className="acts"><button className="btn sm" onClick={() => mark([s.id], true, `${s.name} marked present for ${prettyDate(date)}.`)}>Mark present</button></td>
                       </tr>
                     );
                   })}
@@ -108,14 +122,15 @@ export default function History() {
           {came.length ? (
             <div className="tbl-wrap">
               <table className="tbl">
-                <thead><tr><th>Name</th><th>Group</th><th className="num">Checked in</th><th>How</th></tr></thead>
+                <thead><tr><th>Name</th><th>Group</th><th className="num">Checked in</th><th>How</th><th><span className="sr">Actions</span></th></tr></thead>
                 <tbody>
                   {came.map(({ c, s }) => (
                     <tr key={c.id} className={`g-${s.grp}`}>
                       <td><b>{s.name}</b>{s.visitor && <> <span className="chip visit">Visitor</span></>}</td>
                       <td><span className="chip">{GROUPS[s.grp].label}</span></td>
-                      <td className="num">{timeOf(c.at)}</td>
+                      <td className="num">{dayKey(new Date(c.at)) === c.date ? timeOf(c.at) : <span className="muted">Marked later</span>}</td>
                       <td>{METHODS[c.method]}</td>
+                      <td className="acts"><button className="btn ghost sm" onClick={() => mark([s.id], false, `${s.name} marked as not here on ${prettyDate(date)}.`)}>Not here</button></td>
                     </tr>
                   ))}
                 </tbody>

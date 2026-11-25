@@ -90,6 +90,14 @@ function useTeacherDataValue(role: StaffRole) {
       if (ins.error) return { already: true, streak: prior, pickup: derived.present.get(st.id)?.pickup ?? null };
       return { already: false, streak: prior + 1, pickup: (ins.data as Checkin).pickup };
     },
+    /** Mark students present or not on a past Sunday, when check-in was missed or done by mistake. */
+    async markAttendance(ids: string[], date: string, present: boolean) {
+      if (!isClassDay(date) || date > today) throw new Error("You can only mark attendance for a Sunday that has already happened.");
+      const r = present
+        ? await sb().from("checkins").upsert(ids.map(student_id => ({ student_id, date, method: "teacher" as Method, pickup: null })), { onConflict: "student_id,date", ignoreDuplicates: true })
+        : await sb().from("checkins").delete().in("student_id", ids).eq("date", date);
+      if (r.error) throw new Error(r.error.message); reload();
+    },
     /** Mark a student's workbook answers reviewed (with a comment), or reopen them so the student can edit. */
     async reviewAnswers(sid: string, date: string, patch: { reviewed?: boolean; reopen?: boolean; comment?: string; answers?: Answer[] }) {
       const row: Record<string, unknown> = {};
